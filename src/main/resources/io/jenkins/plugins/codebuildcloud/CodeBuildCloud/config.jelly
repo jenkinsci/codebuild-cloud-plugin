@@ -60,8 +60,8 @@
       <f:textbox default="${descriptor.defaultProtocols}"  />
     </f:entry>
 
-    <f:entry field="proxyCredentials" title="${%Proxy Credentials}">
-      <f:textbox />
+    <f:entry field="proxyCredentialsId" title="${%Proxy Credentials}">
+      <f:select />
     </f:entry>
 
     <f:entry field="tunnel" title="${%Tunnel}">

@@ -18,6 +18,7 @@ import org.jenkinsci.main.modules.instance_identity.InstanceIdentity;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.verb.POST;
 import org.yaml.snakeyaml.Yaml;
 
 import com.amazonaws.regions.Region;
@@ -27,6 +28,12 @@ import com.amazonaws.services.codebuild.model.EnvironmentType;
 import com.amazonaws.services.codebuild.model.ListProjectsRequest;
 import com.amazonaws.services.codebuild.model.ListProjectsResult;
 import com.cloudbees.jenkins.plugins.awscredentials.AWSCredentialsHelper;
+import com.cloudbees.plugins.credentials.CredentialsMatchers;
+import com.cloudbees.plugins.credentials.CredentialsProvider;
+import com.cloudbees.plugins.credentials.common.AbstractIdCredentialsListBoxModel;
+import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
+import com.cloudbees.plugins.credentials.common.StandardUsernameListBoxModel;
+import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 
 import hudson.Extension;
 import hudson.model.Computer;
@@ -34,11 +41,13 @@ import hudson.model.Descriptor;
 import hudson.model.Label;
 import hudson.model.Node;
 import hudson.model.labels.LabelAtom;
+import hudson.security.ACL;
 import hudson.slaves.Cloud;
 import hudson.slaves.NodeProvisioner;
 import hudson.slaves.NodeProvisioner.PlannedNode;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
+import hudson.util.Secret;
 import io.jenkins.cli.shaded.org.apache.commons.lang.NotImplementedException;
 import io.jenkins.cli.shaded.org.apache.commons.lang.NullArgumentException;
 import jenkins.model.Jenkins;
@@ -80,7 +89,7 @@ public class CodeBuildCloud extends Cloud {
   private Integer agentTimeout;
 
   @Nonnull
-  private String controllerIdentity;
+  private Secret controllerIdentity;
 
   @Nonnull
   private String direct;
@@ -98,7 +107,7 @@ public class CodeBuildCloud extends Cloud {
   private String protocols;
 
   @Nonnull
-  private String proxyCredentials;
+  private String proxyCredentialsId;
 
   @Nonnull
   private String tunnel;
@@ -139,7 +148,7 @@ public class CodeBuildCloud extends Cloud {
       @Nonnull Boolean noKeepAlive,
       @Nonnull Boolean noReconnect,
       @Nonnull String protocols,
-      @Nonnull String proxyCredentials,
+      @Nonnull String proxyCredentialsId,
       @Nonnull String tunnel,
       @Nonnull String url,
       @Nonnull Boolean webSocket) throws NotImplementedException {
@@ -161,7 +170,7 @@ public class CodeBuildCloud extends Cloud {
     this.noKeepAlive = noKeepAlive;
     this.noReconnect = noReconnect;
     this.protocols = protocols;
-    this.proxyCredentials = proxyCredentials;
+    this.proxyCredentialsId = proxyCredentialsId;
     this.tunnel = tunnel;
     this.url = url;
     this.webSocket = webSocket;
@@ -171,10 +180,10 @@ public class CodeBuildCloud extends Cloud {
     if (myIdentity == null) {
       throw new NotImplementedException("Failed to find Jenkins Identity");
     }
-    this.controllerIdentity = myIdentity;
+    this.controllerIdentity = Secret.fromString(myIdentity);
 
     LOGGER.info(" Initializing Cloud");
-    // logConfig(); //<-- Use this if having trouble with configuration)
+    //logConfig(); //<-- Use this if having trouble with configuration)
   }
 
   private void logConfig() {
@@ -190,11 +199,11 @@ public class CodeBuildCloud extends Cloud {
     LOGGER.info("CodeBuild noKeepAlive: " + this.noKeepAlive);
     LOGGER.info("CodeBuild noReconnect: " + this.noReconnect);
     LOGGER.info("CodeBuild protocols: " + this.protocols);
-    LOGGER.info("CodeBuild proxyCredentials: " + this.proxyCredentials);
+    LOGGER.info("CodeBuild proxyCredentialsId: " + this.proxyCredentialsId);
     LOGGER.info("CodeBuild tunnel: " + this.tunnel);
     LOGGER.info("CodeBuild url: " + this.url);
     LOGGER.info("CodeBuild webSocket: " + this.webSocket);
-    LOGGER.info("CodeBuild controllerIdentity: " + this.controllerIdentity);
+    LOGGER.info("CodeBuild controllerIdentity: " + this.controllerIdentity.getPlainText());
     LOGGER.info("CodeBuild environmentType: " + this.environmentType);
     LOGGER.info("CodeBuild buildSpec: " + this.buildSpec);
   }
@@ -286,12 +295,12 @@ public class CodeBuildCloud extends Cloud {
   }
 
   @Nonnull
-  public String getControllerIdentity() {
+  public Secret getControllerIdentity() {
     return controllerIdentity;
   }
 
   @DataBoundSetter
-  public void setControllerIdentity(String controllerIdentity) {
+  public void setControllerIdentity(Secret controllerIdentity) {
     this.controllerIdentity = controllerIdentity;
   }
 
@@ -346,13 +355,13 @@ public class CodeBuildCloud extends Cloud {
   }
 
   @Nonnull
-  public String getProxyCredentials() {
-    return proxyCredentials;
+  public String getProxyCredentialsId() {
+    return proxyCredentialsId;
   }
 
   @DataBoundSetter
-  public void setProxyCredentials(String proxyCredentials) {
-    this.proxyCredentials = proxyCredentials;
+  public void setProxyCredentialsId(String proxyCredentialsId) {
+    this.proxyCredentialsId = proxyCredentialsId;
   }
 
   @Nonnull
@@ -516,11 +525,42 @@ public class CodeBuildCloud extends Cloud {
   @Extension
   public static class DescriptorImpl extends Descriptor<Cloud> {
 
-    public ListBoxModel doFillCredentialIdItems() {
-      return AWSCredentialsHelper.doFillCredentialsIdItems(getJenkins());
+    @POST
+    public ListBoxModel doFillCredentialIdItems(@QueryParameter String value) {
+      if (getJenkins().hasPermission(Jenkins.ADMINISTER)) {
+        return AWSCredentialsHelper.doFillCredentialsIdItems(getJenkins());
+      }
+      else{
+        ListBoxModel model =  new ListBoxModel();
+        model.add(value);
+        return model;
+      }
     }
 
+
+    @POST
+    public ListBoxModel doFillProxyCredentialsIdItems(@QueryParameter String value) {
+      if (getJenkins().hasPermission(Jenkins.ADMINISTER)) {
+
+        AbstractIdCredentialsListBoxModel result = new StandardListBoxModel().includeEmptyValue();
+
+        result = result.withMatching(
+                            CredentialsMatchers.always(),
+                            CredentialsProvider.lookupCredentials(StandardUsernamePasswordCredentials.class,
+                                  getJenkins(),
+                                    ACL.SYSTEM,
+                                    Collections.EMPTY_LIST));
+      return result;
+                                    
+      }
+      else{
+        return new StandardUsernameListBoxModel().includeCurrentValue(value);
+      }      
+    }
+
+    @POST
     public ListBoxModel doFillRegionItems() {
+
       final ListBoxModel options = new ListBoxModel();
 
       // NO AWS API Calls here
@@ -530,6 +570,7 @@ public class CodeBuildCloud extends Cloud {
       return options;
     }
 
+    @POST
     public ListBoxModel doFillCodeBuildProjectNameItems(@QueryParameter String credentialId,
         @QueryParameter String region) {
 
@@ -570,6 +611,7 @@ public class CodeBuildCloud extends Cloud {
       return options;
     }
 
+    @POST
     public FormValidation doCheckBuildSpec(@QueryParameter String value) {
 
       // Validate its correct YAML at least
@@ -581,6 +623,7 @@ public class CodeBuildCloud extends Cloud {
       }
     }
 
+    @POST
     public FormValidation doCheckCodeBuildProjectName(@QueryParameter String value) {
       if (value.length() == 0) {
         return FormValidation.error("Please select a Codebuild Project");
@@ -588,6 +631,7 @@ public class CodeBuildCloud extends Cloud {
       return FormValidation.ok();
     }
 
+    @POST
     public ListBoxModel doFillEnvironmentTypeItems() {
       final ListBoxModel options = new ListBoxModel();
       // From here:
@@ -600,6 +644,7 @@ public class CodeBuildCloud extends Cloud {
       return options;
     }
 
+    @POST
     public ListBoxModel doFillComputeTypeItems() {
       final ListBoxModel options = new ListBoxModel();
       // From here:
@@ -615,19 +660,23 @@ public class CodeBuildCloud extends Cloud {
     }
 
     // Special naming convention that makes jelly work get****
+    @POST
     public Integer getDefaultAgentTimeout() {
       return DEFAULT_AGENT_TIMEOUT;
     }
 
+    @POST
     public String getDefaultUrl() {
       JenkinsLocationConfiguration config = JenkinsLocationConfiguration.get();
       return StringUtils.defaultIfBlank(config.getUrl(), "unknown");
     }
 
+    @POST
     public String getDefaultProtocols() {
       return DEFAULT_PROTOCOLS;
     }
 
+    @POST
     public Boolean getDefaultNoReconnect() {
       return DEFAULT_NORECONNECT;
     }

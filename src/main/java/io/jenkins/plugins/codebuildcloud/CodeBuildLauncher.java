@@ -158,15 +158,15 @@ public class CodeBuildLauncher extends JNLPLauncher {
       // Cannot include URL or Tunnel forbids = {"-url", "-tunnel"}
 
       mylist.add(createEnvVariable("JENKINS_DIRECT_CONNECTION", cloud.getDirect()));
-      mylist.add(createEnvVariable("JENKINS_INSTANCE_IDENTITY", cloud.getControllerIdentity()));
+      mylist.add(createEnvVariable("JENKINS_INSTANCE_IDENTITY", cloud.getControllerIdentity().getPlainText()));
 
       if (StringUtils.isNotEmpty(cloud.getProtocols())) {
         mylist.add(createEnvVariable("JENKINS_PROTOCOLS", cloud.getProtocols()));
       }
 
-      if (StringUtils.isNotEmpty(cloud.getProxyCredentials())) {
+      if (StringUtils.isNotEmpty(cloud.getProxyCredentialsId())) {
         mylist.add(createEnvVariable("JENKINS_CODEBUILD_PROXY_CREDENTIALS",
-            "-proxyCredentials " + cloud.getProxyCredentials()));
+            "-proxyCredentials " + cloud.getProxyCredentialsId()));
       }
 
       if (cloud.getNoKeepAlive()) {
@@ -188,9 +188,9 @@ public class CodeBuildLauncher extends JNLPLauncher {
 
       mylist.add(createEnvVariable("JENKINS_URL", cloud.getUrl()));
 
-      if (StringUtils.isNotEmpty(cloud.getProxyCredentials())) {
+      if (StringUtils.isNotEmpty(cloud.getProxyCredentialsId())) {
         mylist.add(createEnvVariable("JENKINS_CODEBUILD_PROXY_CREDENTIALS",
-            "-proxyCredentials " + cloud.getProxyCredentials()));
+            "-proxyCredentials " + cloud.getProxyCredentialsId()));
       }
 
       if (cloud.getNoKeepAlive()) {
