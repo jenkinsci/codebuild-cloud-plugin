@@ -1,0 +1,82 @@
+<?jelly escape-by-default='true'?>
+
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:c="/lib/credentials">
+  
+  <f:entry  field="credentialId" title="${%AWS Credentials}">
+    <c:select/>
+  </f:entry>
+
+  <f:entry field="region" title="${%Region}">
+    <f:select />
+  </f:entry>
+
+  <f:entry field="codeBuildProjectName" title="${%CodeBuild Project Name}">
+    <f:select />
+  </f:entry>
+
+  <f:entry field="label" title="${%Label}">
+    <f:textbox />
+  </f:entry>
+
+  <f:entry field="computeType" title="${%Compute Type}">
+   <f:select />
+  </f:entry>
+
+  <f:entry field="environmentType" title="${%Environment Type}">
+   <f:select />
+  </f:entry>
+
+  <f:entry field="dockerImage" title="${%Docker Image}">
+    <f:textbox />
+  </f:entry>
+
+  <f:entry field="noReconnect" title="${%Disable reconnect}">
+    <f:checkbox checked="${descriptor.defaultNoReconnect}"  />
+  </f:entry>
+
+  <f:entry field="agentTimeout" title="${%Agent Timeout}">
+    <f:number  default="${descriptor.defaultAgentTimeout}"  />
+  </f:entry>
+
+  <f:entry title="${%Build Specification}" field="buildSpec">
+        <f:textarea />
+  </f:entry>
+
+  <f:advanced>
+      <f:entry field="direct" title="${%Direct Connection}">
+      <f:textbox />
+    </f:entry>
+
+    <f:entry field="disableHttpsCertValidation" title="${%Disable SSL Cert Validation}">
+      <f:checkbox />
+    </f:entry>
+
+    <f:entry field="noKeepAlive" title="${%Disable Keepalive}">
+      <f:checkbox />
+    </f:entry>
+
+
+    <f:entry field="protocols" title="${%Protocols to support}">
+      <f:textbox default="${descriptor.defaultProtocols}"  />
+    </f:entry>
+
+    <f:entry field="proxyCredentials" title="${%Proxy Credentials}">
+      <f:textbox />
+    </f:entry>
+
+    <f:entry field="tunnel" title="${%Tunnel}">
+      <f:textbox />
+    </f:entry>
+
+
+    <f:entry field="url" title="${%url}">
+      <f:textbox default="${descriptor.defaultUrl}" />
+    </f:entry>
+
+    <f:entry field="webSocket" title="${%Enable websocket}">
+      <f:checkbox />
+    </f:entry>
+    </f:advanced>
+
+
+</j:jelly>

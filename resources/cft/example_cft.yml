@@ -1,0 +1,106 @@
+#This template makes the assumption that the controller and the agents are running in the same VPC
+#and in the same region.  It also makes the assumption you want your build agents to connect
+#privately instead of publicly to your controller (master)
+
+#Other features
+# Limit how many agents can be spun up at one time.  Helps limit cost overruns.
+# 2 AZs are enabled by default for the private agents
+
+AWSTemplateFormatVersion: "2010-09-09"
+
+Parameters:
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet::Id
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet::Id
+  VPCId:
+    Type: AWS::EC2::VPC::Id
+
+Resources:
+
+  #Security group within the VPC
+  AgentSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub "${AWS::StackName}-jenkins-agents"
+      VpcId: !Ref VPCId
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: "-1" #allow All outgoing, no incoming
+
+  CodebuildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codebuild.amazonaws.com
+            Action: "sts:AssumeRole"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/service-role/AWSAppRunnerServicePolicyForECRAccess"
+        #Pulling custom images from ECR or pulling from S3
+        - "arn:aws:iam::aws:policy/EC2InstanceProfileForImageBuilderECRContainerBuilds"
+      Policies:
+          #Needed to create/delete ENIs when builds run
+          #https://docs.aws.amazon.com/codebuild/latest/userguide/auth-and-access-control-iam-identity-based-access-control.html#customer-managed-policies-example-create-vpc-network-interface
+        - PolicyName: !Sub ${AWS::StackName}-min-perms
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Action:
+                  - "ec2:CreateNetworkInterface"
+                  - "ec2:DescribeDhcpOptions"
+                  - "ec2:DescribeNetworkInterfaces"
+                  - "ec2:DeleteNetworkInterface"
+                  - "ec2:DescribeSubnets"
+                  - "ec2:DescribeSecurityGroups"
+                  - "ec2:DescribeVpcs"
+                Effect: Allow
+                Resource: "*"
+              - Action:
+                  - "ec2:CreateNetworkInterfacePermission"
+                Resource: !Sub "arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:network-interface/*"
+                Effect: Allow
+                Condition:
+                  StringEquals:
+                    ec2:AuthorizedService: codebuild.amazonaws.com
+              - Effect: Allow
+                Resource: "*"
+                Action:
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+  
+  CodebuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Artifacts:
+        Type: NO_ARTIFACTS
+      ConcurrentBuildLimit: 5 #Limit how many agents can be spun up at a time to contain costs.
+      Description: !Sub "${AWS::StackName}-build"
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        ImagePullCredentialsType: SERVICE_ROLE
+        Image: alpine/latest #Random image, will be overriden by plugin configuration
+        PrivilegedMode: true
+        Type: ARM_CONTAINER
+      LogsConfig:
+        CloudWatchLogs:
+          GroupName: !Sub "/jenkins/${AWS::StackName}-build"
+          Status: ENABLED
+          StreamName: codebuild
+      Name: !Sub "${AWS::StackName}-build"
+      QueuedTimeoutInMinutes: 15
+      ResourceAccessRole: !Ref CodebuildRole
+      ServiceRole: !Ref CodebuildRole
+      Source:
+        Type: NO_SOURCE
+        BuildSpec: version:0.2\nphases:\n  build:\n    commands:\n      - exit 1
+      Visibility: PRIVATE
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref AgentSecurityGroup
+        Subnets:
+          - !Ref PrivateSubnet1
+          - !Ref PrivateSubnet2
+        VpcId: !Ref VPCId

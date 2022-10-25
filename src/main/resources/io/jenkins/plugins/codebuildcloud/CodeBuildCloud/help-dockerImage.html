@@ -1,0 +1,5 @@
+<p>
+  The Docker image to use on AWS CodeBuild project. The image should be a <a href="https://docs.aws.amazon.com/codebuild/latest/userguide/build-env-ref-available.html">default image (Image identifier)</a>  from AWS or it should be a custom image in the format AWS_ACCOUNT_ID.dkr.ecr.REGION.amazonaws.com/REPOSITORY:TAG.  IE (1111111.dkr.ecr.us-east-1.amazonaws.com/myrepo:latest)  Make sure this docker image matches architecture of the Environment type that is chosen.  If you build an ARM image and try to run it on X86/AMD64, it will not work properly.
+  <hr />
+ See the example buildspec in README.MD if using CodeBuild default images.
+</p>
