@@ -66,7 +66,7 @@ Makes Codebuild buildjobs a Jenkins Agent.
               # name: version
               # name: version
             commands:
-              - curl --create-dirs -fsSLo /usr/share/jenkins/agent.jar $JENKINS_CODEBUILD_AGENT_URL
+              - curl --create-dirs -fsSLo /usr/share/jenkins/agent.jar https://repo.jenkins-ci.org/artifactory/releases/org/jenkins-ci/main/remoting/4.13.3/remoting-4.13.3.jar
               - chmod 755 /usr/share/jenkins && chmod 644 /usr/share/jenkins/agent.jar && ln -sf /usr/share/jenkins/agent.jar /usr/share/jenkins/slave.jar
               - mkdir -p /home/jenkins/.jenkins && mkdir -p /home/jenkins/agent
               -  curl --create-dirs  -fsSLo /usr/local/bin/jenkins-agent  https://raw.githubusercontent.com/carpnick/docker-inbound-agent/master/jenkins-agent
