@@ -5,6 +5,7 @@ import java.io.InvalidObjectException;
 import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Logger;
@@ -15,9 +16,14 @@ import com.amazonaws.services.codebuild.model.EnvironmentVariable;
 import com.amazonaws.services.codebuild.model.SourceType;
 import com.amazonaws.services.codebuild.model.StartBuildRequest;
 import com.amazonaws.services.codebuild.model.StartBuildResult;
+import com.cloudbees.plugins.credentials.Credentials;
+import com.cloudbees.plugins.credentials.CredentialsMatchers;
+import com.cloudbees.plugins.credentials.CredentialsProvider;
+import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 
 import hudson.model.Node;
 import hudson.model.TaskListener;
+import hudson.security.ACL;
 import hudson.slaves.JNLPLauncher;
 import hudson.slaves.SlaveComputer;
 import hudson.util.StreamTaskListener;
@@ -142,8 +148,37 @@ public class CodeBuildLauncher extends JNLPLauncher {
     throw new TimeoutException("Timed out while waiting for agent " + node + " to start for build ID: " + buildId);
   }
 
+  private String lookupProxyCredentials(){
+    String proxyCredentialId = cloud.getProxyCredentialsId();
+    String proxyCredentials=null;
+    if (!StringUtils.isBlank(proxyCredentialId)){
+
+      Credentials c = CredentialsMatchers.firstOrNull(
+                                            CredentialsProvider.lookupCredentials(StandardUsernamePasswordCredentials.class, 
+                                                                                  cloud.getJenkins(),
+                                                                                  ACL.SYSTEM,
+                                                                                  Collections.EMPTY_LIST
+                                                                                  ),
+                                            CredentialsMatchers.withId(proxyCredentialId) 
+                                         );
+
+       //LOGGER.info("credentials: "+c.toString());
+      
+      if (c !=null && c instanceof StandardUsernamePasswordCredentials ){
+        StandardUsernamePasswordCredentials mycreds= (StandardUsernamePasswordCredentials)c;
+        proxyCredentials = mycreds.getUsername()+":"+mycreds.getPassword().getPlainText();
+        //LOGGER.info("Proxy Credentials:" + proxyCredentials);
+      }
+    }
+
+    return proxyCredentials;
+  }
+
   private List<EnvironmentVariable> buildEnvVariableCollection(@Nonnull SlaveComputer computer, @Nonnull Node node) {
     List<EnvironmentVariable> mylist = new ArrayList<EnvironmentVariable>();
+
+
+    String proxyCredentials=lookupProxyCredentials();
 
     // Next section based on below script and my own design for buildspec files
     // https://github.com/jenkinsci/docker-inbound-agent/blob/62ee56932623a0a66179b0130da806c39d5c323f/jenkins-agent#L27-L39
@@ -164,9 +199,9 @@ public class CodeBuildLauncher extends JNLPLauncher {
         mylist.add(createEnvVariable("JENKINS_PROTOCOLS", cloud.getProtocols()));
       }
 
-      if (StringUtils.isNotEmpty(cloud.getProxyCredentialsId())) {
+      if (StringUtils.isNotEmpty(proxyCredentials)) {
         mylist.add(createEnvVariable("JENKINS_CODEBUILD_PROXY_CREDENTIALS",
-            "-proxyCredentials " + cloud.getProxyCredentialsId()));
+            "-proxyCredentials " + proxyCredentials));
       }
 
       if (cloud.getNoKeepAlive()) {
@@ -188,9 +223,9 @@ public class CodeBuildLauncher extends JNLPLauncher {
 
       mylist.add(createEnvVariable("JENKINS_URL", cloud.getUrl()));
 
-      if (StringUtils.isNotEmpty(cloud.getProxyCredentialsId())) {
+      if (StringUtils.isNotEmpty(proxyCredentials)) {
         mylist.add(createEnvVariable("JENKINS_CODEBUILD_PROXY_CREDENTIALS",
-            "-proxyCredentials " + cloud.getProxyCredentialsId()));
+            "-proxyCredentials " + proxyCredentials));
       }
 
       if (cloud.getNoKeepAlive()) {
