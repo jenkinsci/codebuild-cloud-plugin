@@ -44,6 +44,8 @@ Makes Codebuild buildjobs a Jenkins Agent.
           - "codebuild:Describe*"
           - "codebuild:Get*"
           - "codebuild:StartBuild"
+          - "codebuild:StopBuild"
+          - "codebuild:BatchGet*"
         Resource:
           - "*"
       ```

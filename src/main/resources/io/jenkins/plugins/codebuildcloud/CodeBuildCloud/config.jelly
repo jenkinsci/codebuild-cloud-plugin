@@ -30,6 +30,10 @@
     <f:textbox />
   </f:entry>
 
+  <f:entry field="dockerImagePullCredentials" title="${%Credentials for Pulling Image}">
+    <f:select />
+  </f:entry>
+
   <f:entry field="noReconnect" title="${%Disable reconnect}">
     <f:checkbox checked="${descriptor.defaultNoReconnect}"  />
   </f:entry>
@@ -37,6 +41,8 @@
   <f:entry field="agentTimeout" title="${%Agent Timeout}">
     <f:number  default="${descriptor.defaultAgentTimeout}"  />
   </f:entry>
+  
+
 
   <f:entry title="${%Build Specification}" field="buildSpec">
         <f:textarea />

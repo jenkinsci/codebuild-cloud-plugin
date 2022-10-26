@@ -13,6 +13,7 @@ import java.util.logging.Logger;
 import javax.annotation.Nonnull;
 
 import com.amazonaws.services.codebuild.model.EnvironmentVariable;
+import com.amazonaws.services.codebuild.model.LogsConfig;
 import com.amazonaws.services.codebuild.model.SourceType;
 import com.amazonaws.services.codebuild.model.StartBuildRequest;
 import com.amazonaws.services.codebuild.model.StartBuildResult;
@@ -79,6 +80,7 @@ public class CodeBuildLauncher extends JNLPLauncher {
         .withPrivilegedModeOverride(true)
         .withEnvironmentVariablesOverride(myenvcollection)
         .withComputeTypeOverride(cloud.getComputeType())
+        .withImagePullCredentialsTypeOverride(cloud.getDockerImagePullCredentials())
         .withBuildspecOverride(cloud.getBuildSpec());
 
     String buildId = null;
@@ -91,7 +93,7 @@ public class CodeBuildLauncher extends JNLPLauncher {
 
     } catch (Exception e) {
 
-      if (e instanceof TimeoutException && buildId != null) {
+      if (buildId != null) {
         // Stop the build or make sure stopped
         cloud.getClient().stopBuild(buildId);
       }
@@ -153,18 +155,15 @@ public class CodeBuildLauncher extends JNLPLauncher {
     String proxyCredentials=null;
     if (!StringUtils.isBlank(proxyCredentialId)){
 
-      Credentials c = CredentialsMatchers.firstOrNull(
-                                            CredentialsProvider.lookupCredentials(StandardUsernamePasswordCredentials.class, 
-                                                                                  cloud.getJenkins(),
-                                                                                  ACL.SYSTEM,
-                                                                                  Collections.EMPTY_LIST
-                                                                                  ),
-                                            CredentialsMatchers.withId(proxyCredentialId) 
-                                         );
+      @SuppressWarnings("unchecked")
+      List<StandardUsernamePasswordCredentials> creds =  (List<StandardUsernamePasswordCredentials>) CredentialsProvider.lookupCredentials(StandardUsernamePasswordCredentials.class, 
+                                                                                                                                            cloud.getJenkins(), 
+                                                                                                                                            ACL.SYSTEM, 
+                                                                                                                                            Collections.EMPTY_LIST);
 
-       //LOGGER.info("credentials: "+c.toString());
+      Credentials c =  CredentialsMatchers.firstOrNull(creds,CredentialsMatchers.withId(proxyCredentialId));
       
-      if (c !=null && c instanceof StandardUsernamePasswordCredentials ){
+      if (c !=null){
         StandardUsernamePasswordCredentials mycreds= (StandardUsernamePasswordCredentials)c;
         proxyCredentials = mycreds.getUsername()+":"+mycreds.getPassword().getPlainText();
         //LOGGER.info("Proxy Credentials:" + proxyCredentials);

@@ -9,12 +9,15 @@ import java.util.List;
 import java.util.concurrent.Future;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import hudson.model.ItemGroup;
+import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 
 import javax.annotation.Nonnull;
 
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.main.modules.instance_identity.InstanceIdentity;
+import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
@@ -25,6 +28,7 @@ import com.amazonaws.regions.Region;
 import com.amazonaws.regions.RegionUtils;
 import com.amazonaws.services.codebuild.AWSCodeBuild;
 import com.amazonaws.services.codebuild.model.EnvironmentType;
+import com.amazonaws.services.codebuild.model.ImagePullCredentialsType;
 import com.amazonaws.services.codebuild.model.ListProjectsRequest;
 import com.amazonaws.services.codebuild.model.ListProjectsResult;
 import com.cloudbees.jenkins.plugins.awscredentials.AWSCredentialsHelper;
@@ -42,6 +46,7 @@ import hudson.model.Label;
 import hudson.model.Node;
 import hudson.model.labels.LabelAtom;
 import hudson.security.ACL;
+import hudson.security.Permission;
 import hudson.slaves.Cloud;
 import hudson.slaves.NodeProvisioner;
 import hudson.slaves.NodeProvisioner.PlannedNode;
@@ -130,6 +135,9 @@ public class CodeBuildCloud extends Cloud {
   @Nonnull
   private String buildSpec;
 
+  @Nonnull 
+  private String dockerImagePullCredentials;
+
   @DataBoundConstructor
   public CodeBuildCloud(@Nonnull String name,
       @Nonnull String codeBuildProjectName,
@@ -138,6 +146,7 @@ public class CodeBuildCloud extends Cloud {
       @Nonnull String label,
       @Nonnull Integer agentTimeout,
       @Nonnull String dockerImage,
+      @Nonnull String dockerImagePullCredentials,
       @Nonnull String computeType,
       @Nonnull String environmentType,
       @Nonnull String buildSpec,
@@ -163,6 +172,7 @@ public class CodeBuildCloud extends Cloud {
     this.computeType = computeType;
     this.environmentType = environmentType;
     this.buildSpec = buildSpec;
+    this.dockerImagePullCredentials = dockerImagePullCredentials;
 
     // JNLP params
     this.direct = direct;
@@ -193,6 +203,7 @@ public class CodeBuildCloud extends Cloud {
     LOGGER.info("CodeBuild label: " + this.label);
     LOGGER.info("CodeBuild agentTimeout: " + this.agentTimeout);
     LOGGER.info("CodeBuild dockerImage: " + this.dockerImage);
+    LOGGER.info("CodeBuild dockerImagePullCredentials: " + this.dockerImagePullCredentials);
     LOGGER.info("CodeBuild computeType: " + this.computeType);
     LOGGER.info("CodeBuild direct: " + this.direct);
     LOGGER.info("CodeBuild disableHttpsCertValidation: " + this.disableHttpsCertValidation);
@@ -405,6 +416,18 @@ public class CodeBuildCloud extends Cloud {
   }
 
   @Nonnull
+  public String getDockerImagePullCredentials() {
+    return dockerImagePullCredentials;
+  }
+
+  @DataBoundSetter
+  public void setDockerImagePullCredentials(String dockerImagePullCredentials) {
+    this.dockerImagePullCredentials = dockerImagePullCredentials;
+  }
+
+  
+
+  @Nonnull
   public String getComputeType() {
     return computeType;
   }
@@ -449,7 +472,7 @@ public class CodeBuildCloud extends Cloud {
   @Override
   public boolean canProvision(Label label) {
     boolean canProvision = label == null ? true : label.matches(Arrays.asList(new LabelAtom(getLabel())));
-    LOGGER.info(String.format("Check provisioning capabilities for label '%s': %s", label, canProvision));
+    LOGGER.finest(String.format("Check provisioning capabilities for label '%s': %s", label, canProvision));
     return canProvision;
   }
 
@@ -525,37 +548,66 @@ public class CodeBuildCloud extends Cloud {
   @Extension
   public static class DescriptorImpl extends Descriptor<Cloud> {
 
-    @POST
-    public ListBoxModel doFillCredentialIdItems(@QueryParameter String value) {
-      if (getJenkins().hasPermission(Jenkins.ADMINISTER)) {
-        return AWSCredentialsHelper.doFillCredentialsIdItems(getJenkins());
+    private FormValidation checkValue(String value, String error){
+      if(getJenkins().hasPermission(Jenkins.ADMINISTER)){
+        if (value.length() != 0) {
+          return FormValidation.ok();
+        }
+          return FormValidation.error(error);
       }
       else{
-        ListBoxModel model =  new ListBoxModel();
-        model.add(value);
-        return model;
+        return FormValidation.error("Not an Administrator");
       }
+    }
+
+    @POST
+    public ListBoxModel doFillCredentialIdItems(@AncestorInPath ItemGroup context){
+      getJenkins().checkPermission(Jenkins.ADMINISTER);
+      return AWSCredentialsHelper.doFillCredentialsIdItems(context);
+    }
+
+    @POST
+    public FormValidation doCheckCredentialId(@QueryParameter String value) {
+      //Not performing this check - Jenkins might be running as a role, just check Admin. Also user flipping selection back and forth is valid
+      //return checkCredential(value, "Please select a valid AWS c");
+      getJenkins().checkPermission(Jenkins.ADMINISTER);
+      return FormValidation.ok();
+    }
+
+    @POST
+    public FormValidation doCheckProxyCredentialsId(@QueryParameter String value) {
+      //Not performing this check - User flipping selection back and forth is valid
+      //return checkCredential(value, "Please select a valid AWS c");
+      getJenkins().checkPermission(Jenkins.ADMINISTER);
+      return FormValidation.ok();
+    }
+
+    @POST
+    public ListBoxModel doFillProxyCredentialsIdItems(@AncestorInPath ItemGroup context) {
+      getJenkins().checkPermission(Jenkins.ADMINISTER);
+
+      StandardListBoxModel result = (StandardListBoxModel) new StandardListBoxModel();
+      result.includeEmptyValue();
+      result.includeMatchingAs(
+        ACL.SYSTEM,
+        context,
+        StandardUsernamePasswordCredentials.class,
+        Collections.EMPTY_LIST,
+        CredentialsMatchers.always()
+      );
+
+      return result; 
     }
 
 
     @POST
-    public ListBoxModel doFillProxyCredentialsIdItems(@QueryParameter String value) {
-      if (getJenkins().hasPermission(Jenkins.ADMINISTER)) {
-
-        AbstractIdCredentialsListBoxModel result = new StandardListBoxModel().includeEmptyValue();
-
-        result = result.withMatching(
-                            CredentialsMatchers.always(),
-                            CredentialsProvider.lookupCredentials(StandardUsernamePasswordCredentials.class,
-                                  getJenkins(),
-                                    ACL.SYSTEM,
-                                    Collections.EMPTY_LIST));
-      return result;
-                                    
+    public ListBoxModel doFillDockerImagePullCredentialsItems(){
+      final ListBoxModel options = new ListBoxModel();
+      // NO AWS API Calls here
+      for(ImagePullCredentialsType thetype: ImagePullCredentialsType.values()){
+        options.add(thetype.name());
       }
-      else{
-        return new StandardUsernameListBoxModel().includeCurrentValue(value);
-      }      
+      return options;
     }
 
     @POST
@@ -571,14 +623,14 @@ public class CodeBuildCloud extends Cloud {
     }
 
     @POST
-    public ListBoxModel doFillCodeBuildProjectNameItems(@QueryParameter String credentialId,
-        @QueryParameter String region) {
+    public ListBoxModel doFillCodeBuildProjectNameItems(@QueryParameter String credentialId, @QueryParameter String region) {
+      getJenkins().checkPermission(Jenkins.ADMINISTER);
 
       final ListBoxModel options = new ListBoxModel();
 
       // List of projects from Codebuild
       final List<String> codebuildProjects = new ArrayList<String>();
-
+          
       CodeBuildClientWrapper client = CodeBuildClientWrapperFactory.buildClient(credentialId, region, getJenkins());
       try {
         String nextToken = null;
@@ -612,6 +664,12 @@ public class CodeBuildCloud extends Cloud {
     }
 
     @POST
+    public FormValidation doCheckCodeBuildProjectName(@QueryParameter String value) {
+      LOGGER.info(value);
+      return checkValue(value, "Invalid CodeBuild project selected");
+    }
+
+    @POST
     public FormValidation doCheckBuildSpec(@QueryParameter String value) {
 
       // Validate its correct YAML at least
@@ -623,20 +681,14 @@ public class CodeBuildCloud extends Cloud {
       }
     }
 
-    @POST
-    public FormValidation doCheckCodeBuildProjectName(@QueryParameter String value) {
-      if (value.length() == 0) {
-        return FormValidation.error("Please select a Codebuild Project");
-      }
-      return FormValidation.ok();
-    }
+
 
     @POST
     public ListBoxModel doFillEnvironmentTypeItems() {
       final ListBoxModel options = new ListBoxModel();
       // From here:
       // https://docs.aws.amazon.com/en_us/AWSJavaSDK/latest/javadoc/com/amazonaws/services/codebuild/model/EnvironmentType.html
-
+      // NO AWS API Calls here
       for (EnvironmentType theValue : com.amazonaws.services.codebuild.model.EnvironmentType.values()) {
         options.add(theValue.name());
       }
