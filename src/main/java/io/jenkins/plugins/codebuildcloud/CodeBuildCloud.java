@@ -665,7 +665,6 @@ public class CodeBuildCloud extends Cloud {
 
     @POST
     public FormValidation doCheckCodeBuildProjectName(@QueryParameter String value) {
-      LOGGER.info(value);
       return checkValue(value, "Invalid CodeBuild project selected");
     }
 
