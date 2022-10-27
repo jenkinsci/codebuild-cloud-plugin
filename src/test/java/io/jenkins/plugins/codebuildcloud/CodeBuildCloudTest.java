@@ -1,8 +1,8 @@
 package io.jenkins.plugins.codebuildcloud;
 
-import org.junit.Test;
-import org.junit.Rule;
 import org.junit.Assert;
+import org.junit.Rule;
+import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 
 public class CodeBuildCloudTest {
@@ -12,8 +12,9 @@ public class CodeBuildCloudTest {
 
   @Test
   public void testInitPlugin() throws Exception {
-    final CodeBuildCloud cloud = new CodeBuildCloud(null, "hello", null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+    final CodeBuildCloud cloud = new CodeBuildCloud(null, "hello", null, null, null, null, null, null, null, null, null,
+        null, null, null, null, null, null, null, null, null);
     Assert.assertEquals("hello", cloud.getCodeBuildProjectName());
   }
-  
+
 }

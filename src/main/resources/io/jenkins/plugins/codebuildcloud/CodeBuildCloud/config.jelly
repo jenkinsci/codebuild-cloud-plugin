@@ -7,7 +7,7 @@
   </f:entry>
 
   <f:entry field="region" title="${%Region}">
-    <f:select />
+    <f:select default="${descriptor.defaultRegion}" />
   </f:entry>
 
   <f:entry field="codeBuildProjectName" title="${%CodeBuild Project Name}">

@@ -110,7 +110,7 @@ public class CodeBuildClientWrapper {
 
     CodeBuildStatus status = getBuildStatus(buildId);
 
-    //No other use cases make sense to stop the build right?
+    // No other use cases make sense to stop the build right?
     if (status == CodeBuildStatus.IN_PROGRESS) {
       try {
         LOGGER.info(String.format("Stopping build ID: %s", buildId));

@@ -12,7 +12,6 @@ import hudson.model.Executor;
 import hudson.model.Queue;
 import hudson.slaves.AbstractCloudComputer;
 
-
 public class CodeBuildComputer extends AbstractCloudComputer<CodeBuildSlave> {
   private static final Logger LOGGER = Logger.getLogger(CodeBuildComputer.class.getName());
   private String buildId;
@@ -73,7 +72,8 @@ public class CodeBuildComputer extends AbstractCloudComputer<CodeBuildSlave> {
   @Override
   public void taskCompletedWithProblems(Executor executor, Queue.Task task, long durationMS, Throwable problems) {
     super.taskCompletedWithProblems(executor, task, durationMS, problems);
-    LOGGER.severe(String.format("[%s]: Task in job '%s' completed with problems in %sms", this, task.getFullDisplayName(), durationMS, problems));
+    LOGGER.severe(String.format("[%s]: Task in job '%s' completed with problems in %sms", this,
+        task.getFullDisplayName(), durationMS, problems));
     gracefulShutdown();
   }
 
