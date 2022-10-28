@@ -104,18 +104,25 @@ Makes Codebuild buildjobs a Jenkins Agent.
 - If you have issues, look at the jenkins log on the master/controller
 
 
-### Developer Quick Start
+## Developer Getting started
+
+### Quick Start
   - Fork into your own namespace
   - Environment setup
-    - Requires Java 11.  We use [Coretto](https://aws.amazon.com/corretto).
+    - Requires Java 17.  We use [Coretto](https://aws.amazon.com/corretto).
     - Export JAVA_HOME, IE:
       ```
-      export JAVA_HOME=/Library/Java/JavaVirtualMachines/amazon-corretto-11.jdk/Contents/Home
+      export JAVA_HOME=/Library/Java/JavaVirtualMachines/amazon-corretto-17.jdk/Contents/Home
       ```
     - Make sure you have a new version of maven:
     `brew install maven`
     - `mvn verify` or `mvn clean install` to build
     - To run a local instance `mvn clean  hpi:run`
+
+
+
+### Helpful Script Console Commands
+- Jenkins.get().getComputer().get_all()[1].getJnlpMac()
 
 ## Issues
 
@@ -130,6 +137,3 @@ Refer to our [contribution guidelines](https://github.com/jenkinsci/.github/blob
 Licensed under MIT, see [LICENSE](LICENSE.md)
 
 
-
-## Helpful
-- Jenkins.get().getComputer().get_all()[1].getJnlpMac()
