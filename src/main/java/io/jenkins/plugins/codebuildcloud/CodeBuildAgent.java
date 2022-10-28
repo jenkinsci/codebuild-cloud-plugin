@@ -7,6 +7,7 @@ import java.util.logging.Logger;
 import javax.annotation.Nonnull;
 
 import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.plugins.durabletask.executors.OnceRetentionStrategy;
 
 import com.amazonaws.services.codebuild.model.ResourceNotFoundException;
 
@@ -14,7 +15,6 @@ import hudson.model.Descriptor;
 import hudson.model.TaskListener;
 import hudson.slaves.AbstractCloudComputer;
 import hudson.slaves.AbstractCloudSlave;
-import hudson.slaves.CloudRetentionStrategy;
 import hudson.slaves.ComputerLauncher;
 
 public class CodeBuildAgent extends AbstractCloudSlave {
@@ -33,7 +33,7 @@ public class CodeBuildAgent extends AbstractCloudSlave {
     this.setNumExecutors(1);
     this.setMode(Mode.EXCLUSIVE);
     this.setLabelString(cloud.getLabel());
-    this.setRetentionStrategy(new CloudRetentionStrategy(cloud.getAgentTimeout() / 60 + 1));
+    this.setRetentionStrategy(new OnceRetentionStrategy(cloud.getAgentTimeout() / 60 + 1));
     this.setNodeProperties(Collections.emptyList());
     this.cloud = cloud;
 

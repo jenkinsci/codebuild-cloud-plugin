@@ -178,4 +178,10 @@ public class CodeBuildJnlpAgentReceiver extends DefaultJnlpSlaveReceiver {
       event.reject(new ConnectionRefusalException("Invalid Source IP, was not from AWS CodeBuild"));
     }
   }
+
+  @Override
+  public void channelClosed(JnlpConnectionState event) {
+    // Build stopped from CodeBuild side, dont call the parent
+    // super.channelClosed(event);
+  }
 }
