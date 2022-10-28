@@ -99,6 +99,9 @@ public class CodeBuildCloud extends Cloud {
   private String direct;
 
   @Nonnull
+  private Boolean verifyIsCodeBuildIPOnJNLP;
+
+  @Nonnull
   private Boolean disableHttpsCertValidation;
 
   @Nonnull
@@ -149,6 +152,7 @@ public class CodeBuildCloud extends Cloud {
       @Nonnull String computeType,
       @Nonnull String environmentType,
       @Nonnull String buildSpec,
+      @Nonnull Boolean verifyIsCodeBuildIPOnJNLP,
 
       // JNLP Params
       @Nonnull String direct,
@@ -172,6 +176,7 @@ public class CodeBuildCloud extends Cloud {
     this.environmentType = environmentType;
     this.buildSpec = buildSpec;
     this.dockerImagePullCredentials = dockerImagePullCredentials;
+    this.verifyIsCodeBuildIPOnJNLP = verifyIsCodeBuildIPOnJNLP;
 
     // JNLP params
     this.direct = direct;
@@ -203,6 +208,7 @@ public class CodeBuildCloud extends Cloud {
     LOGGER.info("CodeBuild agentTimeout: " + this.agentTimeout);
     LOGGER.info("CodeBuild dockerImage: " + this.dockerImage);
     LOGGER.info("CodeBuild dockerImagePullCredentials: " + this.dockerImagePullCredentials);
+    LOGGER.info("CodeBuild verifyIsCodeBuildIPOnJNLP: " + this.verifyIsCodeBuildIPOnJNLP);
     LOGGER.info("CodeBuild computeType: " + this.computeType);
     LOGGER.info("CodeBuild direct: " + this.direct);
     LOGGER.info("CodeBuild disableHttpsCertValidation: " + this.disableHttpsCertValidation);
@@ -238,6 +244,10 @@ public class CodeBuildCloud extends Cloud {
       }
     }
   }
+
+  // public static List<CodeBuildCloud> getAllClouds() {
+  // return getJenkins().clouds.getAll(CodeBuildCloud.class);
+  // }
 
   @Nonnull
   protected static Jenkins getJenkins() {
@@ -402,6 +412,16 @@ public class CodeBuildCloud extends Cloud {
   @DataBoundSetter
   public void setWebSocket(Boolean webSocket) {
     this.webSocket = webSocket;
+  }
+
+  @Nonnull
+  public Boolean getVerifyIsCodeBuildIPOnJNLP() {
+    return verifyIsCodeBuildIPOnJNLP;
+  }
+
+  @DataBoundSetter
+  public void setVerifyIsCodeBuildIPOnJNLP(Boolean verifyIsCodeBuildIPOnJNLP) {
+    this.verifyIsCodeBuildIPOnJNLP = verifyIsCodeBuildIPOnJNLP;
   }
 
   @Nonnull

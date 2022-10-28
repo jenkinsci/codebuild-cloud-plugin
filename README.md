@@ -129,3 +129,7 @@ Refer to our [contribution guidelines](https://github.com/jenkinsci/.github/blob
 
 Licensed under MIT, see [LICENSE](LICENSE.md)
 
+
+
+## Helpful
+- Jenkins.get().getComputer().get_all()[1].getJnlpMac()

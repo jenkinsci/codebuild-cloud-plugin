@@ -36,7 +36,7 @@ public class CodeBuildLauncher extends JNLPLauncher {
   private static final Logger LOGGER = Logger.getLogger(CodeBuildLauncher.class.getName());
   private static final int CHECK_WITH_CODEBUILD_STATUS = Math.multiplyExact(30, 1000);
 
-  private final CodeBuildCloud cloud;
+  public final CodeBuildCloud cloud;
   private boolean launched;
 
   public CodeBuildLauncher(CodeBuildCloud cloud) {

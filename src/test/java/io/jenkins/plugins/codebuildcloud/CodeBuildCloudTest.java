@@ -13,6 +13,7 @@ public class CodeBuildCloudTest {
   @Test
   public void testInitPlugin() throws Exception {
     final CodeBuildCloud cloud = new CodeBuildCloud(null, "hello", null, null, null, null, null, null, null, null, null,
+        null,
         null, null, null, null, null, null, null, null, null);
     Assert.assertEquals("hello", cloud.getCodeBuildProjectName());
   }

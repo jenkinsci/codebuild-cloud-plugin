@@ -41,6 +41,11 @@
   <f:entry field="agentTimeout" title="${%Agent Timeout}">
     <f:number  default="${descriptor.defaultAgentTimeout}"  />
   </f:entry>
+
+  <f:entry field="verifyIsCodeBuildIPOnJNLP" title="${%Verify AWS CodeBuild IP Addresses}">
+    <f:checkbox  />
+  </f:entry>
+  
   
 
 
