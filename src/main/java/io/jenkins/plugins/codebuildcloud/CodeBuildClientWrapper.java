@@ -118,6 +118,9 @@ public class CodeBuildClientWrapper {
       } catch (Exception e) {
         LOGGER.severe(String.format("Exception while attempting to stop build: %s.  Exception %s", e.getMessage(), e));
       }
+    } else {
+
+      LOGGER.finest(String.format("Build ID: %s already stopped", buildId));
     }
   }
 

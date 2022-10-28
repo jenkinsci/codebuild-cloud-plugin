@@ -23,7 +23,7 @@ public class CodeBuildAgent extends AbstractCloudSlave {
   private static final Logger LOGGER = Logger.getLogger(CodeBuildAgent.class.getName());
   private static final long serialVersionUID = 1; // SpotBugs
 
-  public CodeBuildAgent(String name, CodeBuildCloud cloud, @Nonnull ComputerLauncher launcher)
+  public CodeBuildAgent(String name, @Nonnull CodeBuildCloud cloud, @Nonnull ComputerLauncher launcher)
       throws Descriptor.FormException, IOException {
     super(name,
         "/build",
@@ -36,11 +36,6 @@ public class CodeBuildAgent extends AbstractCloudSlave {
     this.setRetentionStrategy(new CloudRetentionStrategy(cloud.getAgentTimeout() / 60 + 1));
     this.setNodeProperties(Collections.emptyList());
     this.cloud = cloud;
-
-  }
-
-  public CodeBuildCloud getCloud() {
-    return cloud;
 
   }
 

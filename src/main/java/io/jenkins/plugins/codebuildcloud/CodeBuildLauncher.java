@@ -52,21 +52,22 @@ public class CodeBuildLauncher extends JNLPLauncher {
   /** {@inheritDoc} */
   @Override
   public void launch(@Nonnull SlaveComputer computer, @Nonnull TaskListener listener) {
-    this.launched = false;
+    launched = false;
+
     if (!(computer instanceof CodeBuildComputer)) {
       LOGGER.finest(String.format("Not launching %s since it is not the correct type (%s)", computer,
           CodeBuildComputer.class.getName()));
       return;
     }
 
-    Node node = computer.getNode();
+    CodeBuildComputer codebuildComputer = (CodeBuildComputer) computer;
+    CodeBuildAgent node = codebuildComputer.getNode();
     if (node == null) {
       LOGGER.severe(String.format("Not launching %s since it is missing a node.", computer.getName()));
       return;
     }
 
     LOGGER.info(String.format("Launching %s with %s", computer, listener));
-    CodeBuildComputer codebuildComputer = (CodeBuildComputer) computer;
 
     // Extra ENV Variables to add to the
     List<EnvironmentVariable> myenvcollection = buildEnvVariableCollection(computer, node);
@@ -83,6 +84,7 @@ public class CodeBuildLauncher extends JNLPLauncher {
         .withBuildspecOverride(cloud.getBuildSpec());
 
     String buildId = null;
+
     try {
       StartBuildResult res = cloud.getClient().startBuild(req);
       buildId = res.getBuild().getId();
@@ -90,32 +92,19 @@ public class CodeBuildLauncher extends JNLPLauncher {
 
       waitForAgentConnection(computer, buildId, node);
 
+      launched = true;
+
     } catch (Exception e) {
 
-      if (buildId != null) {
-        // Stop the build or make sure stopped
-        cloud.getClient().stopBuild(buildId);
-      }
-
-      codebuildComputer.setBuildId(null);
       LOGGER.severe(String.format("Exception while starting build: %s.  Exception %s", e.getMessage(), e));
       listener.fatalError("Exception while starting build: %s", e.getMessage());
 
-      if (node instanceof CodeBuildAgent) {
-        try {
-          CodeBuildCloud.getJenkins().removeNode(node);
-        } catch (IOException e1) {
-          LOGGER.severe(String.format("Failed to terminate agent: %s.  Exception: %s", node.getDisplayName(), e));
-        }
+      // Node will stop the AWS CodeBuild build. See _terminate
+      try {
+        node.terminate();
+      } catch (IOException | InterruptedException e1) {
+        LOGGER.severe(String.format("Failed to terminate agent: %s.  Exception: %s", node.getDisplayName(), e));
       }
-    }
-  }
-
-  /** {@inheritDoc} */
-  @Override
-  public void beforeDisconnect(@Nonnull SlaveComputer computer, @Nonnull StreamTaskListener listener) {
-    if (computer instanceof CodeBuildComputer) {
-      ((CodeBuildComputer) computer).setBuildId(null);
     }
   }
 
@@ -127,7 +116,6 @@ public class CodeBuildLauncher extends JNLPLauncher {
     for (int i = 0; i < cloud.getAgentTimeout() * (1000 / sleepMs); i++) {
       if (computer.isOnline() && computer.isAcceptingTasks()) {
         LOGGER.info(String.format(" Agent '%s' connected to build ID: %s.", computer, buildId));
-        launched = true;
         return;
       }
       Thread.sleep(sleepMs);

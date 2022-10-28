@@ -3,36 +3,26 @@ package io.jenkins.plugins.codebuildcloud;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.annotation.Nonnull;
-
 import hudson.model.Executor;
 import hudson.model.Queue;
 import hudson.slaves.AbstractCloudComputer;
 
 public class CodeBuildComputer extends AbstractCloudComputer<CodeBuildAgent> {
+
   private static final Logger LOGGER = Logger.getLogger(CodeBuildComputer.class.getName());
   private String buildId;
 
-  @Nonnull
-  private final CodeBuildCloud cloud;
-
   public CodeBuildComputer(CodeBuildAgent agent) {
     super(agent);
-    this.cloud = agent.getCloud();
   }
 
-  /**
-   * <p>
-   * Getter for the field <code>buildId</code>.
-   * </p>
-   *
-   * @return a {@link String} object.
-   */
-  public String getBuildId() {
+  // Package levl visibility
+  String getBuildId() {
     return buildId;
   }
 
-  /* package */ void setBuildId(String buildId) {
+  // Package levl visibility
+  void setBuildId(String buildId) {
     this.buildId = buildId;
   }
 

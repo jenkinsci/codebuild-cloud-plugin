@@ -760,8 +760,16 @@ public class CodeBuildCloud extends Cloud {
       // From here:
       // https://docs.aws.amazon.com/en_us/AWSJavaSDK/latest/javadoc/com/amazonaws/services/codebuild/model/EnvironmentType.html
       // NO AWS API Calls here
+
+      List<String> envTypes = new ArrayList<String>();
       for (EnvironmentType theValue : com.amazonaws.services.codebuild.model.EnvironmentType.values()) {
-        options.add(theValue.name());
+        envTypes.add(theValue.name());
+      }
+
+      Collections.sort(envTypes);
+
+      for (String envtype : envTypes) {
+        options.add(envtype);
       }
 
       return options;
