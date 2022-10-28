@@ -100,7 +100,7 @@ public class CodeBuildLauncher extends JNLPLauncher {
       LOGGER.severe(String.format("Exception while starting build: %s.  Exception %s", e.getMessage(), e));
       listener.fatalError("Exception while starting build: %s", e.getMessage());
 
-      if (node instanceof CodeBuildSlave) {
+      if (node instanceof CodeBuildAgent) {
         try {
           CodeBuildCloud.getJenkins().removeNode(node);
         } catch (IOException e1) {
@@ -135,39 +135,37 @@ public class CodeBuildLauncher extends JNLPLauncher {
       // Has it been 30 second or longer? Run request to ask Codebuild status of the
       // build. This allows us to fail fast on this side of the connection.
       if (checkbuildcounter > 30000) {
-        checkbuildcounter = 0;  //Reset
+        checkbuildcounter = 0; // Reset
 
         // Should be inprogress only at this point.
-        cloud.getClient().checkBuildStatus(buildId,  Arrays.asList(CodeBuildStatus.FAILED, 
-                                                                  CodeBuildStatus.FAULT,
-                                                                  CodeBuildStatus.STOPPED, 
-                                                                  CodeBuildStatus.SUCCEEDED, 
-                                                                  CodeBuildStatus.TIMED_OUT));
+        cloud.getClient().checkBuildStatus(buildId, Arrays.asList(CodeBuildStatus.FAILED,
+            CodeBuildStatus.FAULT,
+            CodeBuildStatus.STOPPED,
+            CodeBuildStatus.SUCCEEDED,
+            CodeBuildStatus.TIMED_OUT));
       }
     }
     throw new TimeoutException("Timed out while waiting for agent " + node + " to start for build ID: " + buildId);
   }
 
-  private String lookupProxyCredentials(){
+  private String lookupProxyCredentials() {
     String proxyCredentialId = cloud.getProxyCredentialsId();
-    String proxyCredentials=null;
-    if (!StringUtils.isBlank(proxyCredentialId)){
+    String proxyCredentials = null;
+    if (!StringUtils.isBlank(proxyCredentialId)) {
 
       Credentials c = CredentialsMatchers.firstOrNull(
-                                            CredentialsProvider.lookupCredentials(StandardUsernamePasswordCredentials.class, 
-                                                                                  cloud.getJenkins(),
-                                                                                  ACL.SYSTEM,
-                                                                                  Collections.EMPTY_LIST
-                                                                                  ),
-                                            CredentialsMatchers.withId(proxyCredentialId) 
-                                         );
+          CredentialsProvider.lookupCredentials(StandardUsernamePasswordCredentials.class,
+              cloud.getJenkins(),
+              ACL.SYSTEM,
+              Collections.EMPTY_LIST),
+          CredentialsMatchers.withId(proxyCredentialId));
 
-       //LOGGER.info("credentials: "+c.toString());
-      
-      if (c !=null && c instanceof StandardUsernamePasswordCredentials ){
-        StandardUsernamePasswordCredentials mycreds= (StandardUsernamePasswordCredentials)c;
-        proxyCredentials = mycreds.getUsername()+":"+mycreds.getPassword().getPlainText();
-        //LOGGER.info("Proxy Credentials:" + proxyCredentials);
+      // LOGGER.info("credentials: "+c.toString());
+
+      if (c != null && c instanceof StandardUsernamePasswordCredentials) {
+        StandardUsernamePasswordCredentials mycreds = (StandardUsernamePasswordCredentials) c;
+        proxyCredentials = mycreds.getUsername() + ":" + mycreds.getPassword().getPlainText();
+        // LOGGER.info("Proxy Credentials:" + proxyCredentials);
       }
     }
 
@@ -177,8 +175,7 @@ public class CodeBuildLauncher extends JNLPLauncher {
   private List<EnvironmentVariable> buildEnvVariableCollection(@Nonnull SlaveComputer computer, @Nonnull Node node) {
     List<EnvironmentVariable> mylist = new ArrayList<EnvironmentVariable>();
 
-
-    String proxyCredentials=lookupProxyCredentials();
+    String proxyCredentials = lookupProxyCredentials();
 
     // Next section based on below script and my own design for buildspec files
     // https://github.com/jenkinsci/docker-inbound-agent/blob/62ee56932623a0a66179b0130da806c39d5c323f/jenkins-agent#L27-L39
@@ -211,12 +208,10 @@ public class CodeBuildLauncher extends JNLPLauncher {
       if (cloud.getDisableHttpsCertValidation()) {
         mylist.add(createEnvVariable("JENKINS_CODEBUILD_DISABLE_SSL_VALIDATION", "-disableHttpsCertValidation"));
       }
-    } 
-    else if (cloud.getWebSocket()) { // websocket use case
+    } else if (cloud.getWebSocket()) { // websocket use case
       mylist.add(createEnvVariable("JENKINS_WEB_SOCKET", "true"));
       mylist.add(createEnvVariable("JENKINS_URL", cloud.getUrl()));
-    } 
-    else {
+    } else {
       if (StringUtils.isNotEmpty(cloud.getTunnel())) {
         mylist.add(createEnvVariable("JENKINS_TUNNEL", cloud.getTunnel()));
       }
@@ -244,7 +239,8 @@ public class CodeBuildLauncher extends JNLPLauncher {
     mylist.add(createEnvVariable("JENKINS_SECRET", computer.getJnlpMac()));
     mylist.add(createEnvVariable("JENKINS_AGENT_NAME", node.getDisplayName()));
 
-    // Extra helper environment variables for downloading the JAR file instead of over the internet
+    // Extra helper environment variables for downloading the JAR file instead of
+    // over the internet
     try {
       java.net.URL myurl = new java.net.URL(cloud.getUrl());
 
