@@ -23,6 +23,7 @@ import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.verb.POST;
 import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.constructor.SafeConstructor;
 
 import com.amazonaws.SdkClientException;
 import com.amazonaws.regions.DefaultAwsRegionProviderChain;
@@ -235,9 +236,9 @@ public class CodeBuildCloud extends Cloud {
 
     LOGGER.info("Clearing all previous  nodes...");
     for (final Node n : nodes) {
-      if (n instanceof CodeBuildSlave) {
+      if (n instanceof CodeBuildAgent) {
         try {
-          ((CodeBuildSlave) n).terminate();
+          ((CodeBuildAgent) n).terminate();
         } catch (InterruptedException | IOException e) {
           LOGGER.log(Level.SEVERE, String.format("Failed to terminate agent '%s'", n.getDisplayName()), e);
         }
@@ -511,11 +512,11 @@ public class CodeBuildCloud extends Cloud {
   }
 
   /**
-   * Find the number of {@link CodeBuildSlave} instances still connecting to
+   * Find the number of {@link CodeBuildAgent} instances still connecting to
    * Jenkins host.
    */
   private long countStillProvisioning() {
-    return getJenkins().getNodes().stream().filter(CodeBuildSlave.class::isInstance).map(CodeBuildSlave.class::cast)
+    return getJenkins().getNodes().stream().filter(CodeBuildAgent.class::isInstance).map(CodeBuildAgent.class::cast)
         .filter(a -> a.getLauncher().isLaunchSupported()).count();
   }
 
@@ -555,7 +556,7 @@ public class CodeBuildCloud extends Cloud {
       final CodeBuildCloud cloud = this;
       final Future<Node> nodeResolver = Computer.threadPoolForRemoting.submit(() -> {
         CodeBuildLauncher launcher = new CodeBuildLauncher(cloud);
-        CodeBuildSlave agent = new CodeBuildSlave(displayName, cloud, launcher);
+        CodeBuildAgent agent = new CodeBuildAgent(displayName, cloud, launcher);
         getJenkins().addNode(agent);
         return agent;
       });
@@ -645,6 +646,8 @@ public class CodeBuildCloud extends Cloud {
 
     @POST
     public ListBoxModel doFillDockerImagePullCredentialsItems() {
+      getJenkins().checkPermission(Jenkins.ADMINISTER);
+
       final StandardListBoxModel options = new StandardListBoxModel();
       options.includeEmptyValue();
 
@@ -667,6 +670,8 @@ public class CodeBuildCloud extends Cloud {
 
     @POST
     public ListBoxModel doFillRegionItems() {
+
+      getJenkins().checkPermission(Jenkins.ADMINISTER);
 
       final StandardListBoxModel options = new StandardListBoxModel();
 
@@ -740,10 +745,11 @@ public class CodeBuildCloud extends Cloud {
 
     @POST
     public FormValidation doCheckBuildSpec(@QueryParameter String value) {
+      getJenkins().checkPermission(Jenkins.ADMINISTER);
 
       // Validate its correct YAML at least
       try {
-        new Yaml().load(value);
+        new Yaml(new SafeConstructor()).load(value);
         return FormValidation.ok();
       } catch (Exception e) {
         return FormValidation.error("Incorrect YAML DEFINITION: " + e.toString());

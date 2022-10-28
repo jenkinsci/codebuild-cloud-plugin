@@ -17,13 +17,13 @@ import hudson.slaves.AbstractCloudSlave;
 import hudson.slaves.CloudRetentionStrategy;
 import hudson.slaves.ComputerLauncher;
 
-public class CodeBuildSlave extends AbstractCloudSlave {
+public class CodeBuildAgent extends AbstractCloudSlave {
 
   private final transient CodeBuildCloud cloud;
-  private static final Logger LOGGER = Logger.getLogger(CodeBuildSlave.class.getName());
+  private static final Logger LOGGER = Logger.getLogger(CodeBuildAgent.class.getName());
   private static final long serialVersionUID = 1; // SpotBugs
 
-  public CodeBuildSlave(String name, CodeBuildCloud cloud, @Nonnull ComputerLauncher launcher)
+  public CodeBuildAgent(String name, CodeBuildCloud cloud, @Nonnull ComputerLauncher launcher)
       throws Descriptor.FormException, IOException {
     super(name,
         "/build",
@@ -45,7 +45,7 @@ public class CodeBuildSlave extends AbstractCloudSlave {
   }
 
   @Override
-  public AbstractCloudComputer<CodeBuildSlave> createComputer() {
+  public AbstractCloudComputer<CodeBuildAgent> createComputer() {
     return new CodeBuildComputer(this);
   }
 

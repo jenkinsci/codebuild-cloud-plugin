@@ -13,7 +13,6 @@ import java.util.logging.Logger;
 import javax.annotation.Nonnull;
 
 import com.amazonaws.services.codebuild.model.EnvironmentVariable;
-import com.amazonaws.services.codebuild.model.LogsConfig;
 import com.amazonaws.services.codebuild.model.SourceType;
 import com.amazonaws.services.codebuild.model.StartBuildRequest;
 import com.amazonaws.services.codebuild.model.StartBuildResult;
@@ -102,7 +101,7 @@ public class CodeBuildLauncher extends JNLPLauncher {
       LOGGER.severe(String.format("Exception while starting build: %s.  Exception %s", e.getMessage(), e));
       listener.fatalError("Exception while starting build: %s", e.getMessage());
 
-      if (node instanceof CodeBuildSlave) {
+      if (node instanceof CodeBuildAgent) {
         try {
           CodeBuildCloud.getJenkins().removeNode(node);
         } catch (IOException e1) {

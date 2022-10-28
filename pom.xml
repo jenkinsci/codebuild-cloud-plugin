@@ -10,7 +10,7 @@
   <groupId>io.jenkins.plugins</groupId>
   <artifactId>codebuild-cloud</artifactId>
   <properties>
-    <revision>1.0</revision>
+    <revision>0.9</revision>
     <changelist>-SNAPSHOT</changelist>
 
     <!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
@@ -44,7 +44,6 @@
     <tag>${scmTag}</tag>
     <url>https://github.com/${gitHubRepo}</url>
   </scm>
-
 
   <dependencyManagement>
     <dependencies>
@@ -88,6 +87,13 @@
       <artifactId>ipaddress</artifactId>
       <version>5.3.4</version>
     </dependency>
+
+    <dependency>
+      <groupId>org.yaml</groupId>
+      <artifactId>snakeyaml</artifactId>
+      <version>1.33</version>
+    </dependency>
+
 
     <!-- Tests-->
     <dependency>
