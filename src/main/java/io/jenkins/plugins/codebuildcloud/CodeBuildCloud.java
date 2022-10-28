@@ -572,31 +572,26 @@ public class CodeBuildCloud extends Cloud {
   public static class DescriptorImpl extends Descriptor<Cloud> {
 
     private FormValidation checkValue(String value, String error) {
-      if (getJenkins().hasPermission(Jenkins.ADMINISTER)) {
-        if (value.length() != 0) {
-          return FormValidation.ok();
-        }
-        return FormValidation.error(error);
-      } else {
-        return FormValidation.error("Not an Administrator");
+      getJenkins().checkPermission(Jenkins.ADMINISTER);
+      if (value.length() != 0) {
+        return FormValidation.ok();
       }
+      return FormValidation.error(error);
     }
 
     private FormValidation checkValue(String value, Integer min, Integer max, String error) {
-      if (getJenkins().hasPermission(Jenkins.ADMINISTER)) {
-        try {
-          Integer newval = Integer.parseInt(value);
-          if (newval <= max && newval >= min) {
-            return FormValidation.ok();
-          } else {
-            return FormValidation
-                .error(error + ": Was outside of bounds of allowed valies.  Min: " + min + " Max: " + max);
-          }
-        } catch (Exception e) {
-          return FormValidation.error(error + "  Exception: " + e.toString());
+      getJenkins().checkPermission(Jenkins.ADMINISTER);
+
+      try {
+        Integer newval = Integer.parseInt(value);
+        if (newval <= max && newval >= min) {
+          return FormValidation.ok();
+        } else {
+          return FormValidation
+              .error(error + ": Was outside of bounds of allowed valies.  Min: " + min + " Max: " + max);
         }
-      } else {
-        return FormValidation.error("Not an Administrator");
+      } catch (Exception e) {
+        return FormValidation.error(error + "  Exception: " + e.toString());
       }
     }
 
@@ -615,7 +610,7 @@ public class CodeBuildCloud extends Cloud {
     public FormValidation doCheckCredentialId(@QueryParameter String value) {
       // Not performing this check - Jenkins might be running as a role, just check
       // Admin. Also user flipping selection back and forth is valid
-      // return checkCredential(value, "Please select a valid AWS c");
+      // return checkValue(value, "Please select a valid AWS c");
       getJenkins().checkPermission(Jenkins.ADMINISTER);
       return FormValidation.ok();
     }
@@ -623,7 +618,7 @@ public class CodeBuildCloud extends Cloud {
     @POST
     public FormValidation doCheckProxyCredentialsId(@QueryParameter String value) {
       // Not performing this check - User flipping selection back and forth is valid
-      // return checkCredential(value, "Please select a valid AWS c");
+      // return checkValue(value, "Please select a valid AWS c");
       getJenkins().checkPermission(Jenkins.ADMINISTER);
       return FormValidation.ok();
     }
@@ -692,6 +687,7 @@ public class CodeBuildCloud extends Cloud {
     @POST
     public ListBoxModel doFillCodeBuildProjectNameItems(@QueryParameter String credentialId,
         @QueryParameter String region) {
+
       getJenkins().checkPermission(Jenkins.ADMINISTER);
 
       final StandardListBoxModel options = new StandardListBoxModel();
