@@ -7,6 +7,7 @@ import java.util.logging.Logger;
 
 
 import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.plugins.durabletask.executors.OnceRetentionStrategy;
 
 import com.amazonaws.services.codebuild.model.ResourceNotFoundException;
 
@@ -15,7 +16,6 @@ import hudson.model.Descriptor;
 import hudson.model.TaskListener;
 import hudson.slaves.AbstractCloudComputer;
 import hudson.slaves.AbstractCloudSlave;
-import hudson.slaves.CloudRetentionStrategy;
 import hudson.slaves.ComputerLauncher;
 
 public class CodeBuildAgent extends AbstractCloudSlave {
@@ -24,7 +24,7 @@ public class CodeBuildAgent extends AbstractCloudSlave {
   private static final Logger LOGGER = Logger.getLogger(CodeBuildAgent.class.getName());
   private static final long serialVersionUID = 1; // SpotBugs
 
-  public CodeBuildAgent(String name, CodeBuildCloud cloud, @NonNull ComputerLauncher launcher)
+  public CodeBuildAgent(String name, @NonNull CodeBuildCloud cloud, @NonNull ComputerLauncher launcher)
       throws Descriptor.FormException, IOException {
     super(name,
         "/build",
@@ -34,14 +34,9 @@ public class CodeBuildAgent extends AbstractCloudSlave {
     this.setNumExecutors(1);
     this.setMode(Mode.EXCLUSIVE);
     this.setLabelString(cloud.getLabel());
-    this.setRetentionStrategy(new CloudRetentionStrategy(cloud.getAgentTimeout() / 60 + 1));
+    this.setRetentionStrategy(new OnceRetentionStrategy(cloud.getAgentTimeout() / 60 + 1));
     this.setNodeProperties(Collections.emptyList());
     this.cloud = cloud;
-
-  }
-
-  public CodeBuildCloud getCloud() {
-    return cloud;
 
   }
 

@@ -44,6 +44,8 @@ Makes Codebuild buildjobs a Jenkins Agent.
           - "codebuild:Describe*"
           - "codebuild:Get*"
           - "codebuild:StartBuild"
+          - "codebuild:StopBuild"
+          - "codebuild:BatchGet*"
         Resource:
           - "*"
       ```
@@ -102,7 +104,9 @@ Makes Codebuild buildjobs a Jenkins Agent.
 - If you have issues, look at the jenkins log on the master/controller
 
 
-### Developer Quick Start
+## Developer Getting started
+
+### Quick Start
   - Fork into your own namespace
   - Environment setup
     - Requires Java 17.  We use [Coretto](https://aws.amazon.com/corretto).
@@ -115,6 +119,11 @@ Makes Codebuild buildjobs a Jenkins Agent.
     - `mvn verify` or `mvn clean install` to build
     - To run a local instance `mvn clean  hpi:run`
 
+
+
+### Helpful Script Console Commands
+- Jenkins.get().getComputer().get_all()[1].getJnlpMac()
+
 ## Issues
 
 Open issues here in Github
@@ -126,4 +135,5 @@ Refer to our [contribution guidelines](https://github.com/jenkinsci/.github/blob
 ## LICENSE
 
 Licensed under MIT, see [LICENSE](LICENSE.md)
+
 
