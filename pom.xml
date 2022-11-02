@@ -9,7 +9,7 @@
   </parent>
   <groupId>io.jenkins.plugins</groupId>
   <artifactId>codebuild-cloud</artifactId>
-  <version>${revision}${changelist}</version>
+  <version>${revision}.${changelist}</version>
   <packaging>hpi</packaging>
   <name>AWS Codebuild Cloud</name>
   <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
@@ -36,7 +36,7 @@
   </scm>
   <properties>
     <revision>0.9</revision>
-    <changelist>-SNAPSHOT</changelist>
+    <changelist>999999-SNAPSHOT</changelist>
 
     <!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
     <jenkins.version>2.361.1</jenkins.version>
