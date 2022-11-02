@@ -34,7 +34,7 @@ public class CodeBuildLauncher extends JNLPLauncher {
   private static final Logger LOGGER = Logger.getLogger(CodeBuildLauncher.class.getName());
   private static final int CHECK_WITH_CODEBUILD_STATUS = Math.multiplyExact(30, 1000);
 
-  private final CodeBuildCloud cloud;
+  public final CodeBuildCloud cloud;
   private boolean launched;
 
   public CodeBuildLauncher(CodeBuildCloud cloud) {
@@ -51,21 +51,22 @@ public class CodeBuildLauncher extends JNLPLauncher {
   /** {@inheritDoc} */
   @Override
   public void launch(@NonNull SlaveComputer computer, @NonNull TaskListener listener) {
-    this.launched = false;
+    launched = false;
+
     if (!(computer instanceof CodeBuildComputer)) {
       LOGGER.finest(String.format("Not launching %s since it is not the correct type (%s)", computer,
           CodeBuildComputer.class.getName()));
       return;
     }
 
-    Node node = computer.getNode();
+    CodeBuildComputer codebuildComputer = (CodeBuildComputer) computer;
+    CodeBuildAgent node = codebuildComputer.getNode();
     if (node == null) {
       LOGGER.severe(String.format("Not launching %s since it is missing a node.", computer.getName()));
       return;
     }
 
     LOGGER.info(String.format("Launching %s with %s", computer, listener));
-    CodeBuildComputer codebuildComputer = (CodeBuildComputer) computer;
 
     // Extra ENV Variables to add to the
     List<EnvironmentVariable> myenvcollection = buildEnvVariableCollection(computer, node);
@@ -78,9 +79,11 @@ public class CodeBuildLauncher extends JNLPLauncher {
         .withPrivilegedModeOverride(true)
         .withEnvironmentVariablesOverride(myenvcollection)
         .withComputeTypeOverride(cloud.getComputeType())
+        .withImagePullCredentialsTypeOverride(cloud.getDockerImagePullCredentials())
         .withBuildspecOverride(cloud.getBuildSpec());
 
     String buildId = null;
+
     try {
       StartBuildResult res = cloud.getClient().startBuild(req);
       buildId = res.getBuild().getId();
@@ -88,34 +91,22 @@ public class CodeBuildLauncher extends JNLPLauncher {
 
       waitForAgentConnection(computer, buildId, node);
 
+      launched = true;
+
     } catch (Exception e) {
 
-      if (e instanceof TimeoutException && buildId != null) {
-        // Stop the build or make sure stopped
-        cloud.getClient().stopBuild(buildId);
-      }
-
-      codebuildComputer.setBuildId(null);
       LOGGER.severe(String.format("Exception while starting build: %s.  Exception %s", e.getMessage(), e));
       listener.fatalError("Exception while starting build: %s", e.getMessage());
 
-      if (node instanceof CodeBuildAgent) {
-        try {
-          CodeBuildCloud.getJenkins().removeNode(node);
-        } catch (IOException e1) {
-          LOGGER.severe(String.format("Failed to terminate agent: %s.  Exception: %s", node.getDisplayName(), e));
-        }
+      // Node will stop the AWS CodeBuild build. See _terminate
+      try {
+        node.terminate();
+      } catch (IOException | InterruptedException e1) {
+        LOGGER.severe(String.format("Failed to terminate agent: %s.  Exception: %s", node.getDisplayName(), e));
       }
     }
   }
 
-  /** {@inheritDoc} */
-  @Override
-  public void beforeDisconnect(@NonNull SlaveComputer computer, @NonNull StreamTaskListener listener) {
-    if (computer instanceof CodeBuildComputer) {
-      ((CodeBuildComputer) computer).setBuildId(null);
-    }
-  }
 
   private void waitForAgentConnection(@NonNull SlaveComputer computer, @NonNull String buildId, @NonNull Node node)
       throws TimeoutException, InvalidObjectException, InterruptedException {
@@ -125,7 +116,6 @@ public class CodeBuildLauncher extends JNLPLauncher {
     for (int i = 0; i < cloud.getAgentTimeout() * (1000 / sleepMs); i++) {
       if (computer.isOnline() && computer.isAcceptingTasks()) {
         LOGGER.info(String.format(" Agent '%s' connected to build ID: %s.", computer, buildId));
-        launched = true;
         return;
       }
       Thread.sleep(sleepMs);
@@ -152,16 +142,16 @@ public class CodeBuildLauncher extends JNLPLauncher {
     String proxyCredentials = null;
     if (!StringUtils.isBlank(proxyCredentialId)) {
 
-      Credentials c = CredentialsMatchers.firstOrNull(
-          CredentialsProvider.lookupCredentials(StandardUsernamePasswordCredentials.class,
+      @SuppressWarnings("unchecked")
+      List<StandardUsernamePasswordCredentials> creds = (List<StandardUsernamePasswordCredentials>) CredentialsProvider
+          .lookupCredentials(StandardUsernamePasswordCredentials.class,
               cloud.getJenkins(),
               ACL.SYSTEM,
-              Collections.EMPTY_LIST),
-          CredentialsMatchers.withId(proxyCredentialId));
+              Collections.EMPTY_LIST);
 
-      // LOGGER.info("credentials: "+c.toString());
+      Credentials c = CredentialsMatchers.firstOrNull(creds, CredentialsMatchers.withId(proxyCredentialId));
 
-      if (c != null && c instanceof StandardUsernamePasswordCredentials) {
+      if (c != null) {
         StandardUsernamePasswordCredentials mycreds = (StandardUsernamePasswordCredentials) c;
         proxyCredentials = mycreds.getUsername() + ":" + mycreds.getPassword().getPlainText();
         // LOGGER.info("Proxy Credentials:" + proxyCredentials);

@@ -1,0 +1,18 @@
+<p>
+  Some people might want to run Jenkins publicly and make sure only desired Agents can connect to this Controller. To
+  enable more security than what has already been enabled natively with the Jenkins Agent JNLP, this setting verifies
+  the connecting IP address is owned by Amazon and part of the CodeBuild Service IP addresses. We only include Amazon
+  specific IPs and CodeBuild service IPs. This enables Jenkins's TCP Listener to be more open from a firewall
+  perspective, but more locked down from an Application perspective.
+  <hr />
+  If you enable this setting and are using JNLP, you will need to make sure when agents connect, that the source IP is
+  AWS CodeBuild. That means if you have configured your build to use VPC subnets where the Controller is, you should NOT
+  check this setting. This setting should only be used when you can guarantee the IP address the CodeBuild agent is
+  trying to connect from, is from the public facing CodeBuild IP addresses. (This includes if using a load balancer make
+  sure to enable <a
+    href="https://docs.aws.amazon.com/elasticloadbalancing/latest/network/load-balancer-target-groups.html#client-ip-preservation">Source
+    IP Preservation</a>)
+  <br />
+  See <a href="https://docs.aws.amazon.com/general/latest/gr/aws-ip-ranges.html#aws-ip-egress-control">here</a> for more
+  information.
+</p>

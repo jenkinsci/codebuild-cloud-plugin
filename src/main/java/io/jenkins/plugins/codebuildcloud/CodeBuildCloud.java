@@ -1,6 +1,8 @@
 package io.jenkins.plugins.codebuildcloud;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -13,6 +15,7 @@ import java.util.logging.Logger;
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.main.modules.instance_identity.InstanceIdentity;
+import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
@@ -20,13 +23,17 @@ import org.kohsuke.stapler.verb.POST;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
 
+import com.amazonaws.SdkClientException;
+import com.amazonaws.regions.DefaultAwsRegionProviderChain;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.RegionUtils;
 import com.amazonaws.services.codebuild.AWSCodeBuild;
 import com.amazonaws.services.codebuild.model.EnvironmentType;
+import com.amazonaws.services.codebuild.model.ImagePullCredentialsType;
 import com.amazonaws.services.codebuild.model.ListProjectsRequest;
 import com.amazonaws.services.codebuild.model.ListProjectsResult;
 import com.cloudbees.jenkins.plugins.awscredentials.AWSCredentialsHelper;
+import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernameListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 
@@ -34,6 +41,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.model.Computer;
 import hudson.model.Descriptor;
+import hudson.model.ItemGroup;
 import hudson.model.Label;
 import hudson.model.Node;
 import hudson.model.labels.LabelAtom;
@@ -58,7 +66,7 @@ public class CodeBuildCloud extends Cloud {
 
   private static final Logger LOGGER = Logger.getLogger(CodeBuildCloud.class.getName());
 
-  private static final Integer DEFAULT_AGENT_TIMEOUT = 120;
+  private static final Integer DEFAULT_AGENT_TIMEOUT = 180;
   private static final String DEFAULT_PROTOCOLS = "JNLP4-connect";
   private static final Boolean DEFAULT_NORECONNECT = true;
 
@@ -89,6 +97,9 @@ public class CodeBuildCloud extends Cloud {
 
   @NonNull
   private String direct;
+
+  @NonNull
+  private Boolean verifyIsCodeBuildIPOnJNLP;
 
   @NonNull
   private Boolean disableHttpsCertValidation;
@@ -126,6 +137,9 @@ public class CodeBuildCloud extends Cloud {
   @NonNull
   private String buildSpec;
 
+  @NonNull
+  private String dockerImagePullCredentials;
+
   @DataBoundConstructor
   public CodeBuildCloud(@NonNull String name,
       @NonNull String codeBuildProjectName,
@@ -134,9 +148,11 @@ public class CodeBuildCloud extends Cloud {
       @NonNull String label,
       @NonNull Integer agentTimeout,
       @NonNull String dockerImage,
+      @NonNull String dockerImagePullCredentials,
       @NonNull String computeType,
       @NonNull String environmentType,
       @NonNull String buildSpec,
+      @NonNull Boolean verifyIsCodeBuildIPOnJNLP,
 
       // JNLP Params
       @NonNull String direct,
@@ -159,6 +175,8 @@ public class CodeBuildCloud extends Cloud {
     this.computeType = computeType;
     this.environmentType = environmentType;
     this.buildSpec = buildSpec;
+    this.dockerImagePullCredentials = dockerImagePullCredentials;
+    this.verifyIsCodeBuildIPOnJNLP = verifyIsCodeBuildIPOnJNLP;
 
     // JNLP params
     this.direct = direct;
@@ -189,6 +207,8 @@ public class CodeBuildCloud extends Cloud {
     LOGGER.info("CodeBuild label: " + this.label);
     LOGGER.info("CodeBuild agentTimeout: " + this.agentTimeout);
     LOGGER.info("CodeBuild dockerImage: " + this.dockerImage);
+    LOGGER.info("CodeBuild dockerImagePullCredentials: " + this.dockerImagePullCredentials);
+    LOGGER.info("CodeBuild verifyIsCodeBuildIPOnJNLP: " + this.verifyIsCodeBuildIPOnJNLP);
     LOGGER.info("CodeBuild computeType: " + this.computeType);
     LOGGER.info("CodeBuild direct: " + this.direct);
     LOGGER.info("CodeBuild disableHttpsCertValidation: " + this.disableHttpsCertValidation);
@@ -227,7 +247,7 @@ public class CodeBuildCloud extends Cloud {
 
   @NonNull
   protected static Jenkins getJenkins() {
-    Jenkins instance = Jenkins.getInstanceOrNull();
+    Jenkins instance = Jenkins.get();
     if (instance == null) {
       throw new NullArgumentException("Jenkins is null");
     }
@@ -391,6 +411,16 @@ public class CodeBuildCloud extends Cloud {
   }
 
   @NonNull
+  public Boolean getVerifyIsCodeBuildIPOnJNLP() {
+    return verifyIsCodeBuildIPOnJNLP;
+  }
+
+  @DataBoundSetter
+  public void setVerifyIsCodeBuildIPOnJNLP(Boolean verifyIsCodeBuildIPOnJNLP) {
+    this.verifyIsCodeBuildIPOnJNLP = verifyIsCodeBuildIPOnJNLP;
+  }
+
+  @NonNull
   public String getDockerImage() {
     return dockerImage;
   }
@@ -398,6 +428,16 @@ public class CodeBuildCloud extends Cloud {
   @DataBoundSetter
   public void setDockerImage(String dockerImage) {
     this.dockerImage = dockerImage;
+  }
+
+  @NonNull
+  public String getDockerImagePullCredentials() {
+    return dockerImagePullCredentials;
+  }
+
+  @DataBoundSetter
+  public void setDockerImagePullCredentials(String dockerImagePullCredentials) {
+    this.dockerImagePullCredentials = dockerImagePullCredentials;
   }
 
   @NonNull
@@ -444,9 +484,13 @@ public class CodeBuildCloud extends Cloud {
   /** {@inheritDoc} */
   @Override
   public boolean canProvision(Label label) {
-    boolean canProvision = label == null ? true : label.matches(Arrays.asList(new LabelAtom(getLabel())));
-    LOGGER.info(String.format("Check provisioning capabilities for label '%s': %s", label, canProvision));
-    return canProvision;
+    boolean canProv = false;
+    if (label != null) {
+      canProv = label.matches(Arrays.asList(new LabelAtom(getLabel())));
+    }
+
+    LOGGER.finest(String.format("Check provisioning capabilities for label '%s': %s", label, canProv));
+    return canProv;
   }
 
   /**
@@ -477,14 +521,15 @@ public class CodeBuildCloud extends Cloud {
     List<NodeProvisioner.PlannedNode> list = new ArrayList<NodeProvisioner.PlannedNode>();
 
     // guard against non-matching labels
-    if (label != null && !label.matches(Arrays.asList(new LabelAtom(getLabel())))) {
+    if (!canProvision(label)) {
       return list;
     }
 
-    // guard against double-provisioning with a 500ms cooldown clock
+    // guard against double-provisioning with a 1 second cooldown clock
     long timeDiff = System.currentTimeMillis() - lastProvisionTime;
-    if (timeDiff < 500) {
-      LOGGER.info(String.format("Provision of %s skipped, still on cooldown %sms of 500ms)", excessWorkload, timeDiff));
+    if (timeDiff < 1000) {
+      LOGGER.info(
+          String.format("Provision of %s skipped, still on cooldown %sms of 1 second)", excessWorkload, timeDiff));
       return list;
     }
 
@@ -521,32 +566,100 @@ public class CodeBuildCloud extends Cloud {
   @Extension
   public static class DescriptorImpl extends Descriptor<Cloud> {
 
-    @POST
-    public ListBoxModel doFillCredentialIdItems(@QueryParameter String value) {
-      if (getJenkins().hasPermission(Jenkins.ADMINISTER)) {
-        return AWSCredentialsHelper.doFillCredentialsIdItems(getJenkins());
-      } else {
-        ListBoxModel model = new ListBoxModel();
-        model.add(value);
-        return model;
+    private FormValidation checkValue(String value, String error) {
+      getJenkins().checkPermission(Jenkins.ADMINISTER);
+      if (value.length() != 0) {
+        return FormValidation.ok();
       }
+      return FormValidation.error(error);
+    }
+
+    private FormValidation checkValue(String value, Integer min, Integer max, String error) {
+      getJenkins().checkPermission(Jenkins.ADMINISTER);
+
+      try {
+        Integer newval = Integer.parseInt(value);
+        if (newval <= max && newval >= min) {
+          return FormValidation.ok();
+        } else {
+          return FormValidation
+              .error(error + ": Was outside of bounds of allowed valies.  Min: " + min + " Max: " + max);
+        }
+      } catch (Exception e) {
+        return FormValidation.error(error + "  Exception: " + e.toString());
+      }
+    }
+
+    @POST
+    public ListBoxModel doFillCredentialIdItems(@AncestorInPath ItemGroup context) {
+      getJenkins().checkPermission(Jenkins.ADMINISTER);
+      return AWSCredentialsHelper.doFillCredentialsIdItems(context);
+    }
+
+    @POST
+    public FormValidation doCheckLabel(@QueryParameter String value) {
+      return checkValue(value, "Must include a label");
+    }
+
+    @POST
+    public FormValidation doCheckCredentialId(@QueryParameter String value) {
+      // Not performing this check - Jenkins might be running as a role, just check
+      // Admin. Also user flipping selection back and forth is valid
+      // return checkValue(value, "Please select a valid AWS c");
+      getJenkins().checkPermission(Jenkins.ADMINISTER);
+      return FormValidation.ok();
+    }
+
+    @POST
+    public FormValidation doCheckProxyCredentialsId(@QueryParameter String value) {
+      // Not performing this check - User flipping selection back and forth is valid
+      // return checkValue(value, "Please select a valid AWS c");
+      getJenkins().checkPermission(Jenkins.ADMINISTER);
+      return FormValidation.ok();
+    }
+
+    @POST
+    public ListBoxModel doFillDockerImagePullCredentialsItems() {
+      getJenkins().checkPermission(Jenkins.ADMINISTER);
+
+      final StandardListBoxModel options = new StandardListBoxModel();
+      options.includeEmptyValue();
+
+      // NO AWS API Calls here
+      for (ImagePullCredentialsType thetype : ImagePullCredentialsType.values()) {
+        options.add(thetype.name());
+      }
+      return options;
+    }
+
+    @POST
+    public FormValidation doCheckDockerImage(@QueryParameter String value) {
+      return checkValue(value, "Must put in a valid docker image string");
+    }
+
+    @POST
+    public FormValidation doCheckDockerImagePullCredentials(@QueryParameter String value) {
+      return checkValue(value, "Must pick the Credential Type to pull the image for AWS CodeBuild service.");
     }
 
     @POST
     public ListBoxModel doFillProxyCredentialsIdItems(@QueryParameter String value) {
       getJenkins().checkPermission(Jenkins.ADMINISTER);
-      LOGGER.info("doFillProxyCredentialsIdItems");
 
       ListBoxModel result = new StandardUsernameListBoxModel()
-                                          .includeEmptyValue()
-                                          .includeAs(ACL.SYSTEM, getJenkins(), StandardUsernamePasswordCredentials.class);
-        return result;
+          .includeEmptyValue()
+          .includeAs(ACL.SYSTEM, getJenkins(), StandardUsernamePasswordCredentials.class);
+      return result;
     }
 
     @POST
     public ListBoxModel doFillRegionItems() {
 
-      final ListBoxModel options = new ListBoxModel();
+      getJenkins().checkPermission(Jenkins.ADMINISTER);
+
+      final StandardListBoxModel options = new StandardListBoxModel();
+
+      options.includeEmptyValue();
 
       // NO AWS API Calls here
       for (Region r : RegionUtils.getRegionsForService(AWSCodeBuild.ENDPOINT_PREFIX)) {
@@ -556,12 +669,18 @@ public class CodeBuildCloud extends Cloud {
     }
 
     @POST
+    public FormValidation doCheckRegion(@QueryParameter String value) {
+      return checkValue(value, "Must include a region");
+    }
+
+    @POST
     public ListBoxModel doFillCodeBuildProjectNameItems(@QueryParameter String credentialId,
         @QueryParameter String region) {
 
       getJenkins().checkPermission(Jenkins.ADMINISTER);
 
-      final ListBoxModel options = new ListBoxModel();
+      final StandardListBoxModel options = new StandardListBoxModel();
+      options.includeEmptyValue();
 
       // List of projects from Codebuild
       final List<String> codebuildProjects = new ArrayList<String>();
@@ -584,8 +703,13 @@ public class CodeBuildCloud extends Cloud {
               " Exception listing codebuild project because of INVALID AWS credentials Exception: " + e.toString());
           return options;
         } else {
-          throw e;
+          LOGGER.log(Level.SEVERE, "Unhandled AWS Exception listing CodeBuild Projects: ", e);
+          return options;
         }
+      } catch (Exception e) {
+        LOGGER.log(Level.SEVERE, "Unhandled General Exception listing CodeBuild Projects: ", e);
+        return options;
+
       }
 
       // Sort them
@@ -595,7 +719,13 @@ public class CodeBuildCloud extends Cloud {
       for (String item : codebuildProjects) {
         options.add(item);
       }
+
       return options;
+    }
+
+    @POST
+    public FormValidation doCheckCodeBuildProjectName(@QueryParameter String value) {
+      return checkValue(value, "Invalid CodeBuild project selected");
     }
 
     @POST
@@ -612,29 +742,37 @@ public class CodeBuildCloud extends Cloud {
     }
 
     @POST
-    public FormValidation doCheckCodeBuildProjectName(@QueryParameter String value) {
-      if (value.length() == 0) {
-        return FormValidation.error("Please select a Codebuild Project");
-      }
-      return FormValidation.ok();
-    }
-
-    @POST
     public ListBoxModel doFillEnvironmentTypeItems() {
-      final ListBoxModel options = new ListBoxModel();
+      final StandardListBoxModel options = new StandardListBoxModel();
+      options.includeEmptyValue();
+
       // From here:
       // https://docs.aws.amazon.com/en_us/AWSJavaSDK/latest/javadoc/com/amazonaws/services/codebuild/model/EnvironmentType.html
+      // NO AWS API Calls here
 
+      List<String> envTypes = new ArrayList<String>();
       for (EnvironmentType theValue : com.amazonaws.services.codebuild.model.EnvironmentType.values()) {
-        options.add(theValue.name());
+        envTypes.add(theValue.name());
+      }
+
+      Collections.sort(envTypes);
+
+      for (String envtype : envTypes) {
+        options.add(envtype);
       }
 
       return options;
     }
 
     @POST
+    public FormValidation doCheckEnvironmentType(@QueryParameter String value) {
+      return checkValue(value, "Must include an EnvironmentType");
+    }
+
+    @POST
     public ListBoxModel doFillComputeTypeItems() {
-      final ListBoxModel options = new ListBoxModel();
+      final StandardListBoxModel options = new StandardListBoxModel();
+      options.includeEmptyValue();
       // From here:
       // https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-codebuild/enums/computetype.html
       // And here
@@ -645,6 +783,17 @@ public class CodeBuildCloud extends Cloud {
       options.add("BUILD_GENERAL1_2XLARGE");
 
       return options;
+    }
+
+    @POST
+    public FormValidation doCheckComputeType(@QueryParameter String value) {
+      return checkValue(value, "Must include a Compute Type");
+    }
+
+    @POST
+    public FormValidation doCheckAgentTimeout(@QueryParameter String value) {
+      // Realistically an agent connection needs to be above 60 seconds
+      return checkValue(value, 60, Integer.MAX_VALUE, "Invalid Agent Timeout Specified. ");
     }
 
     // Special naming convention that makes jelly work get****
@@ -660,6 +809,18 @@ public class CodeBuildCloud extends Cloud {
     }
 
     @POST
+    public FormValidation doCheckUrl(@QueryParameter String value) {
+      if (value.length() > 0) {
+        try {
+          new URL(value);
+        } catch (MalformedURLException e) {
+          return FormValidation.error("Invalid Jenkins URL: Exception: " + e.toString());
+        }
+      }
+      return FormValidation.ok();
+    }
+
+    @POST
     public String getDefaultProtocols() {
       return DEFAULT_PROTOCOLS;
     }
@@ -667,6 +828,15 @@ public class CodeBuildCloud extends Cloud {
     @POST
     public Boolean getDefaultNoReconnect() {
       return DEFAULT_NORECONNECT;
+    }
+
+    @POST
+    public String getDefaultRegion() {
+      try {
+        return new DefaultAwsRegionProviderChain().getRegion();
+      } catch (SdkClientException exc) {
+        return null;
+      }
     }
 
     @Override
