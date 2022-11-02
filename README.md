@@ -105,10 +105,10 @@ Makes Codebuild buildjobs a Jenkins Agent.
 ### Developer Quick Start
   - Fork into your own namespace
   - Environment setup
-    - Requires Java 11.  We use [Coretto](https://aws.amazon.com/corretto).
+    - Requires Java 17.  We use [Coretto](https://aws.amazon.com/corretto).
     - Export JAVA_HOME, IE:
       ```
-      export JAVA_HOME=/Library/Java/JavaVirtualMachines/amazon-corretto-11.jdk/Contents/Home
+      export JAVA_HOME=/Library/Java/JavaVirtualMachines/amazon-corretto-17.jdk/Contents/Home
       ```
     - Make sure you have a new version of maven:
     `brew install maven`
