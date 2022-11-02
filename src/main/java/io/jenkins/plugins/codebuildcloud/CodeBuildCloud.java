@@ -10,8 +10,6 @@ import java.util.concurrent.Future;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.annotation.Nonnull;
-
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.main.modules.instance_identity.InstanceIdentity;
@@ -29,13 +27,10 @@ import com.amazonaws.services.codebuild.model.EnvironmentType;
 import com.amazonaws.services.codebuild.model.ListProjectsRequest;
 import com.amazonaws.services.codebuild.model.ListProjectsResult;
 import com.cloudbees.jenkins.plugins.awscredentials.AWSCredentialsHelper;
-import com.cloudbees.plugins.credentials.CredentialsMatchers;
-import com.cloudbees.plugins.credentials.CredentialsProvider;
-import com.cloudbees.plugins.credentials.common.AbstractIdCredentialsListBoxModel;
-import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernameListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.model.Computer;
 import hudson.model.Descriptor;
@@ -74,85 +69,85 @@ public class CodeBuildCloud extends Cloud {
 
   // Fields
 
-  @Nonnull
+  @NonNull
   private String codeBuildProjectName;
 
-  @Nonnull
+  @NonNull
   private String credentialId;
 
-  @Nonnull
+  @NonNull
   private String region;
 
-  @Nonnull
+  @NonNull
   private String label;
 
-  @Nonnull
+  @NonNull
   private Integer agentTimeout;
 
-  @Nonnull
+  @NonNull
   private Secret controllerIdentity;
 
-  @Nonnull
+  @NonNull
   private String direct;
 
-  @Nonnull
+  @NonNull
   private Boolean disableHttpsCertValidation;
 
-  @Nonnull
+  @NonNull
   private Boolean noKeepAlive;
 
-  @Nonnull
+  @NonNull
   private Boolean noReconnect;
 
-  @Nonnull
+  @NonNull
   private String protocols;
 
-  @Nonnull
+  @NonNull
   private String proxyCredentialsId;
 
-  @Nonnull
+  @NonNull
   private String tunnel;
 
-  @Nonnull
+  @NonNull
   private String url;
 
-  @Nonnull
+  @NonNull
   private Boolean webSocket;
 
-  @Nonnull
+  @NonNull
   private String dockerImage;
 
-  @Nonnull
+  @NonNull
   private String computeType;
 
-  @Nonnull
+  @NonNull
   private String environmentType;
 
-  @Nonnull
+  @NonNull
   private String buildSpec;
 
   @DataBoundConstructor
-  public CodeBuildCloud(@Nonnull String name,
-      @Nonnull String codeBuildProjectName,
-      @Nonnull String credentialId,
-      @Nonnull String region,
-      @Nonnull String label,
-      @Nonnull Integer agentTimeout,
-      @Nonnull String dockerImage,
-      @Nonnull String computeType,
-      @Nonnull String environmentType,
-      @Nonnull String buildSpec,
+  public CodeBuildCloud(@NonNull String name,
+      @NonNull String codeBuildProjectName,
+      @NonNull String credentialId,
+      @NonNull String region,
+      @NonNull String label,
+      @NonNull Integer agentTimeout,
+      @NonNull String dockerImage,
+      @NonNull String computeType,
+      @NonNull String environmentType,
+      @NonNull String buildSpec,
 
       // JNLP Params
-      @Nonnull String direct,
-      @Nonnull Boolean disableHttpsCertValidation,
-      @Nonnull Boolean noKeepAlive,
-      @Nonnull Boolean noReconnect,
-      @Nonnull String protocols,
-      @Nonnull String proxyCredentialsId,
-      @Nonnull String tunnel,
-      @Nonnull String url,
-      @Nonnull Boolean webSocket) throws NotImplementedException {
+      @NonNull String direct,
+      @NonNull Boolean disableHttpsCertValidation,
+      @NonNull Boolean noKeepAlive,
+      @NonNull Boolean noReconnect,
+      @NonNull String protocols,
+      @NonNull String proxyCredentialsId,
+      @NonNull String tunnel,
+      @NonNull String url,
+      @NonNull Boolean webSocket) throws NotImplementedException {
     super(StringUtils.isNotBlank(name) ? name : "codebuildcloud_" + getJenkins().clouds.size());
 
     this.codeBuildProjectName = codeBuildProjectName;
@@ -230,7 +225,7 @@ public class CodeBuildCloud extends Cloud {
     }
   }
 
-  @Nonnull
+  @NonNull
   protected static Jenkins getJenkins() {
     Jenkins instance = Jenkins.getInstanceOrNull();
     if (instance == null) {
@@ -245,7 +240,7 @@ public class CodeBuildCloud extends Cloud {
     return name;
   }
 
-  @Nonnull
+  @NonNull
   public String getCodeBuildProjectName() {
     return codeBuildProjectName;
   }
@@ -255,7 +250,7 @@ public class CodeBuildCloud extends Cloud {
     this.codeBuildProjectName = codeBuildProjectName;
   }
 
-  @Nonnull
+  @NonNull
   public String getRegion() {
     return region;
   }
@@ -265,7 +260,7 @@ public class CodeBuildCloud extends Cloud {
     this.region = region;
   }
 
-  @Nonnull
+  @NonNull
   public String getLabel() {
     return label;
   }
@@ -275,7 +270,7 @@ public class CodeBuildCloud extends Cloud {
     this.label = label;
   }
 
-  @Nonnull
+  @NonNull
   public Integer getAgentTimeout() {
     return agentTimeout;
   }
@@ -285,7 +280,7 @@ public class CodeBuildCloud extends Cloud {
     this.agentTimeout = agentTimeout;
   }
 
-  @Nonnull
+  @NonNull
   public String getCredentialId() {
     return credentialId;
   }
@@ -295,7 +290,7 @@ public class CodeBuildCloud extends Cloud {
     this.credentialId = credentialId;
   }
 
-  @Nonnull
+  @NonNull
   public Secret getControllerIdentity() {
     return controllerIdentity;
   }
@@ -305,7 +300,7 @@ public class CodeBuildCloud extends Cloud {
     this.controllerIdentity = controllerIdentity;
   }
 
-  @Nonnull
+  @NonNull
   public String getDirect() {
     return direct;
   }
@@ -315,7 +310,7 @@ public class CodeBuildCloud extends Cloud {
     this.direct = direct;
   }
 
-  @Nonnull
+  @NonNull
   public Boolean getDisableHttpsCertValidation() {
     return disableHttpsCertValidation;
   }
@@ -325,7 +320,7 @@ public class CodeBuildCloud extends Cloud {
     this.disableHttpsCertValidation = disableHttpsCertValidation;
   }
 
-  @Nonnull
+  @NonNull
   public Boolean getNoKeepAlive() {
     return noKeepAlive;
   }
@@ -335,7 +330,7 @@ public class CodeBuildCloud extends Cloud {
     this.noKeepAlive = noKeepAlive;
   }
 
-  @Nonnull
+  @NonNull
   public Boolean getNoReconnect() {
     return noReconnect;
   }
@@ -345,7 +340,7 @@ public class CodeBuildCloud extends Cloud {
     this.noReconnect = noReconnect;
   }
 
-  @Nonnull
+  @NonNull
   public String getProtocols() {
     return protocols;
   }
@@ -355,7 +350,7 @@ public class CodeBuildCloud extends Cloud {
     this.protocols = protocols;
   }
 
-  @Nonnull
+  @NonNull
   public String getProxyCredentialsId() {
     return proxyCredentialsId;
   }
@@ -365,7 +360,7 @@ public class CodeBuildCloud extends Cloud {
     this.proxyCredentialsId = proxyCredentialsId;
   }
 
-  @Nonnull
+  @NonNull
   public String getTunnel() {
     return tunnel;
   }
@@ -375,7 +370,7 @@ public class CodeBuildCloud extends Cloud {
     this.tunnel = tunnel;
   }
 
-  @Nonnull
+  @NonNull
   public String getUrl() {
     return url;
   }
@@ -385,7 +380,7 @@ public class CodeBuildCloud extends Cloud {
     this.url = url;
   }
 
-  @Nonnull
+  @NonNull
   public Boolean getWebSocket() {
     return webSocket;
   }
@@ -395,7 +390,7 @@ public class CodeBuildCloud extends Cloud {
     this.webSocket = webSocket;
   }
 
-  @Nonnull
+  @NonNull
   public String getDockerImage() {
     return dockerImage;
   }
@@ -405,7 +400,7 @@ public class CodeBuildCloud extends Cloud {
     this.dockerImage = dockerImage;
   }
 
-  @Nonnull
+  @NonNull
   public String getComputeType() {
     return computeType;
   }
@@ -415,7 +410,7 @@ public class CodeBuildCloud extends Cloud {
     this.computeType = computeType;
   }
 
-  @Nonnull
+  @NonNull
   public String getEnvironmentType() {
     return environmentType;
   }
@@ -425,7 +420,7 @@ public class CodeBuildCloud extends Cloud {
     this.environmentType = environmentType;
   }
 
-  @Nonnull
+  @NonNull
   public String getBuildSpec() {
     return buildSpec;
   }
@@ -539,21 +534,13 @@ public class CodeBuildCloud extends Cloud {
 
     @POST
     public ListBoxModel doFillProxyCredentialsIdItems(@QueryParameter String value) {
-      if (getJenkins().hasPermission(Jenkins.ADMINISTER)) {
+      getJenkins().checkPermission(Jenkins.ADMINISTER);
+      LOGGER.info("doFillProxyCredentialsIdItems");
 
-        AbstractIdCredentialsListBoxModel result = new StandardListBoxModel().includeEmptyValue();
-
-        result = result.withMatching(
-            CredentialsMatchers.always(),
-            CredentialsProvider.lookupCredentials(StandardUsernamePasswordCredentials.class,
-                getJenkins(),
-                ACL.SYSTEM,
-                Collections.EMPTY_LIST));
+      ListBoxModel result = new StandardUsernameListBoxModel()
+                                          .includeEmptyValue()
+                                          .includeAs(ACL.SYSTEM, getJenkins(), StandardUsernamePasswordCredentials.class);
         return result;
-
-      } else {
-        return new StandardUsernameListBoxModel().includeCurrentValue(value);
-      }
     }
 
     @POST
