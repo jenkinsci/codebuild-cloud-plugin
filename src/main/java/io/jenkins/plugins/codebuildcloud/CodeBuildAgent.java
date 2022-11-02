@@ -4,12 +4,13 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.logging.Logger;
 
-import javax.annotation.Nonnull;
+
 
 import org.apache.commons.lang.StringUtils;
 
 import com.amazonaws.services.codebuild.model.ResourceNotFoundException;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.Descriptor;
 import hudson.model.TaskListener;
 import hudson.slaves.AbstractCloudComputer;
@@ -23,7 +24,7 @@ public class CodeBuildAgent extends AbstractCloudSlave {
   private static final Logger LOGGER = Logger.getLogger(CodeBuildAgent.class.getName());
   private static final long serialVersionUID = 1; // SpotBugs
 
-  public CodeBuildAgent(String name, CodeBuildCloud cloud, @Nonnull ComputerLauncher launcher)
+  public CodeBuildAgent(String name, CodeBuildCloud cloud, @NonNull ComputerLauncher launcher)
       throws Descriptor.FormException, IOException {
     super(name,
         "/build",

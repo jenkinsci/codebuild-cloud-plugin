@@ -10,8 +10,6 @@ import java.util.List;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Logger;
 
-import javax.annotation.Nonnull;
-
 import com.amazonaws.services.codebuild.model.EnvironmentVariable;
 import com.amazonaws.services.codebuild.model.SourceType;
 import com.amazonaws.services.codebuild.model.StartBuildRequest;
@@ -21,6 +19,7 @@ import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.Node;
 import hudson.model.TaskListener;
 import hudson.security.ACL;
@@ -51,7 +50,7 @@ public class CodeBuildLauncher extends JNLPLauncher {
 
   /** {@inheritDoc} */
   @Override
-  public void launch(@Nonnull SlaveComputer computer, @Nonnull TaskListener listener) {
+  public void launch(@NonNull SlaveComputer computer, @NonNull TaskListener listener) {
     this.launched = false;
     if (!(computer instanceof CodeBuildComputer)) {
       LOGGER.finest(String.format("Not launching %s since it is not the correct type (%s)", computer,
@@ -112,13 +111,13 @@ public class CodeBuildLauncher extends JNLPLauncher {
 
   /** {@inheritDoc} */
   @Override
-  public void beforeDisconnect(@Nonnull SlaveComputer computer, @Nonnull StreamTaskListener listener) {
+  public void beforeDisconnect(@NonNull SlaveComputer computer, @NonNull StreamTaskListener listener) {
     if (computer instanceof CodeBuildComputer) {
       ((CodeBuildComputer) computer).setBuildId(null);
     }
   }
 
-  private void waitForAgentConnection(@Nonnull SlaveComputer computer, @Nonnull String buildId, @Nonnull Node node)
+  private void waitForAgentConnection(@NonNull SlaveComputer computer, @NonNull String buildId, @NonNull Node node)
       throws TimeoutException, InvalidObjectException, InterruptedException {
     LOGGER.info(String.format("Waiting for agent '%s' to connect to build ID: %s...", computer, buildId));
 
@@ -172,7 +171,7 @@ public class CodeBuildLauncher extends JNLPLauncher {
     return proxyCredentials;
   }
 
-  private List<EnvironmentVariable> buildEnvVariableCollection(@Nonnull SlaveComputer computer, @Nonnull Node node) {
+  private List<EnvironmentVariable> buildEnvVariableCollection(@NonNull SlaveComputer computer, @NonNull Node node) {
     List<EnvironmentVariable> mylist = new ArrayList<EnvironmentVariable>();
 
     String proxyCredentials = lookupProxyCredentials();

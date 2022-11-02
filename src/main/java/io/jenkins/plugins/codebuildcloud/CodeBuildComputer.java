@@ -5,8 +5,7 @@ import java.net.URLEncoder;
 import java.util.concurrent.Future;
 import java.util.logging.Logger;
 
-import javax.annotation.Nonnull;
-
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.Computer;
 import hudson.model.Executor;
 import hudson.model.Queue;
@@ -16,7 +15,7 @@ public class CodeBuildComputer extends AbstractCloudComputer<CodeBuildAgent> {
   private static final Logger LOGGER = Logger.getLogger(CodeBuildComputer.class.getName());
   private String buildId;
 
-  @Nonnull
+  @NonNull
   private final CodeBuildCloud cloud;
 
   public CodeBuildComputer(CodeBuildAgent agent) {
@@ -73,7 +72,7 @@ public class CodeBuildComputer extends AbstractCloudComputer<CodeBuildAgent> {
   public void taskCompletedWithProblems(Executor executor, Queue.Task task, long durationMS, Throwable problems) {
     super.taskCompletedWithProblems(executor, task, durationMS, problems);
     LOGGER.severe(String.format("[%s]: Task in job '%s' completed with problems in %sms", this,
-        task.getFullDisplayName(), durationMS, problems));
+        task.getFullDisplayName(), durationMS));
     gracefulShutdown();
   }
 
