@@ -3,4 +3,7 @@
  https://github.com/jenkins-infra/pipeline-library/
 */
 buildPlugin(useContainerAgent: true,
-            jdkVersions: [17] )
+            configurations: [
+              [ platform: "linux", jdk: "17", jenkins: null ]
+              ]
+           )
