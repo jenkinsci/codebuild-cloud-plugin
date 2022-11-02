@@ -87,9 +87,9 @@ public class CodeBuildJnlpAgentReceiver extends DefaultJnlpSlaveReceiver {
     }
 
     lastcacheTime = System.currentTimeMillis();
-    allowedIPs = new ArrayList<IPAddressString>(); // Defaults to not allow any IP addresses if we dont properly get
-                                                   // amazon information.
 
+    // Defaults to not allow any IP addresses if we dont properly get amazon information.
+    allowedIPs = new ArrayList<IPAddressString>(); 
     String body = getAmazonIPInfo();
     if (body == null) {
       return;
@@ -130,8 +130,7 @@ public class CodeBuildJnlpAgentReceiver extends DefaultJnlpSlaveReceiver {
     String clientName = event.getProperty(JnlpConnectionState.CLIENT_NAME_KEY);
     SlaveComputer computer = (SlaveComputer) Jenkins.get().getComputer(clientName);
 
-    // Use default behavior if not our computer - We should never hit this if owns
-    // is properly working
+    // Use default behavior if no computer
     if (computer == null) {
       super.afterProperties(event);
       return;
@@ -148,7 +147,7 @@ public class CodeBuildJnlpAgentReceiver extends DefaultJnlpSlaveReceiver {
     // Then it is within our domain to accept/reject
     CodeBuildLauncher ourLauncher = (CodeBuildLauncher) launcher;
 
-    // Not enabled so just use default
+    // Is enabled? Use default if not
     if (!ourLauncher.cloud.getVerifyIsCodeBuildIPOnJNLP()) {
       super.afterProperties(event);
       return;
@@ -169,7 +168,7 @@ public class CodeBuildJnlpAgentReceiver extends DefaultJnlpSlaveReceiver {
       }
     }
 
-    LOGGER.info("Is Valid IP: " + valid_ip);
+    LOGGER.fine("Is Valid IP: " + valid_ip);
     if (valid_ip) {
       // Is a CodeBuild IP - allow the rest of the logic to run.
       super.afterProperties(event);

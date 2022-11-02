@@ -66,7 +66,7 @@ public class CodeBuildCloud extends Cloud {
 
   private static final Logger LOGGER = Logger.getLogger(CodeBuildCloud.class.getName());
 
-  private static final Integer DEFAULT_AGENT_TIMEOUT = 120;
+  private static final Integer DEFAULT_AGENT_TIMEOUT = 180;
   private static final String DEFAULT_PROTOCOLS = "JNLP4-connect";
   private static final Boolean DEFAULT_NORECONNECT = true;
 
@@ -647,9 +647,9 @@ public class CodeBuildCloud extends Cloud {
       getJenkins().checkPermission(Jenkins.ADMINISTER);
 
       ListBoxModel result = new StandardUsernameListBoxModel()
-                                          .includeEmptyValue()
-                                          .includeAs(ACL.SYSTEM, getJenkins(), StandardUsernamePasswordCredentials.class);
-        return result;
+          .includeEmptyValue()
+          .includeAs(ACL.SYSTEM, getJenkins(), StandardUsernamePasswordCredentials.class);
+      return result;
     }
 
     @POST
