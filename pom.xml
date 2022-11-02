@@ -9,7 +9,7 @@
   </parent>
   <groupId>io.jenkins.plugins</groupId>
   <artifactId>codebuild-cloud</artifactId>
-  <version>${revision}${changelist}</version>
+  <version>${revision}.${changelist}</version>
   <packaging>hpi</packaging>
   <name>AWS Codebuild Cloud</name>
   <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
@@ -36,7 +36,7 @@
   </scm>
   <properties>
     <revision>0.9</revision>
-    <changelist>-SNAPSHOT</changelist>
+    <changelist>999999-SNAPSHOT</changelist>
 
     <!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
     <jenkins.version>2.361.1</jenkins.version>
@@ -49,7 +49,7 @@
         <!-- Pick up common dependencies for the selected LTS line: https://github.com/jenkinsci/bom#usage -->
         <groupId>io.jenkins.tools.bom</groupId>
         <artifactId>bom-2.361.x</artifactId>
-        <version>1643.v1cffef51df73</version>
+        <version>1654.vcb_69d035fa_20</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
