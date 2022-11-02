@@ -46,7 +46,8 @@ public class CodeBuildComputer extends AbstractCloudComputer<CodeBuildAgent> {
   @Override
   public void taskCompletedWithProblems(Executor executor, Queue.Task task, long durationMS, Throwable problems) {
     super.taskCompletedWithProblems(executor, task, durationMS, problems);
-    LOGGER.log(Level.FINE, "[{0}]: taskCompletedWithProblems", this);
+    LOGGER.severe(String.format("[%s]: Task in job '%s' completed with problems in %sms", this,
+        task.getFullDisplayName(), durationMS));
   }
 
   /** {@inheritDoc} */

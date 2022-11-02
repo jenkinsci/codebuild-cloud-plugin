@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.annotation.Nonnull;
+
 
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.services.codebuild.AWSCodeBuild;
@@ -22,6 +22,7 @@ import com.amazonaws.services.codebuild.model.StopBuildRequest;
 import com.cloudbees.jenkins.plugins.awscredentials.AWSCredentialsHelper;
 import com.cloudbees.jenkins.plugins.awscredentials.AmazonWebServicesCredentials;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.ProxyConfiguration;
 import jenkins.model.Jenkins;
 
@@ -75,7 +76,7 @@ public class CodeBuildClientWrapper {
     TIMED_OUT
   }
 
-  public CodeBuildStatus getBuildStatus(@Nonnull String buildId) {
+  public CodeBuildStatus getBuildStatus(@NonNull String buildId) {
 
     BatchGetBuildsRequest req = new BatchGetBuildsRequest();
     req.setIds(Arrays.asList(buildId));
@@ -89,7 +90,7 @@ public class CodeBuildClientWrapper {
     return CodeBuildStatus.valueOf(bstatus);
   }
 
-  public void checkBuildStatus(@Nonnull String buildId, List<CodeBuildStatus> invalidStatuses)
+  public void checkBuildStatus(@NonNull String buildId, List<CodeBuildStatus> invalidStatuses)
       throws InvalidObjectException {
 
     // Run request to ask Codebuild status of the build. This allows us to fail fast
@@ -106,7 +107,7 @@ public class CodeBuildClientWrapper {
     return _client.startBuild(req);
   }
 
-  public void stopBuild(@Nonnull String buildId) {
+  public void stopBuild(@NonNull String buildId) {
 
     CodeBuildStatus status = getBuildStatus(buildId);
 

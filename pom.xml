@@ -4,22 +4,12 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>4.48</version>
+    <version>4.49</version>
     <relativePath />
   </parent>
   <groupId>io.jenkins.plugins</groupId>
   <artifactId>codebuild-cloud</artifactId>
-  <properties>
-    <revision>0.9</revision>
-    <changelist>-SNAPSHOT</changelist>
-
-    <!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
-    <jenkins.version>2.361.1</jenkins.version>
-    <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
-  </properties>
-
-
-  <version>${revision}${changelist}</version>
+  <version>${revision}.${changelist}</version>
   <packaging>hpi</packaging>
   <name>AWS Codebuild Cloud</name>
   <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
@@ -44,6 +34,14 @@
     <tag>${scmTag}</tag>
     <url>https://github.com/${gitHubRepo}</url>
   </scm>
+  <properties>
+    <revision>0.9</revision>
+    <changelist>999999-SNAPSHOT</changelist>
+
+    <!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
+    <jenkins.version>2.361.1</jenkins.version>
+    <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
+  </properties>
 
   <dependencyManagement>
     <dependencies>
@@ -51,7 +49,7 @@
         <!-- Pick up common dependencies for the selected LTS line: https://github.com/jenkinsci/bom#usage -->
         <groupId>io.jenkins.tools.bom</groupId>
         <artifactId>bom-2.361.x</artifactId>
-        <version>1643.v1cffef51df73</version>
+        <version>1654.vcb_69d035fa_20</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -91,9 +89,8 @@
 
     <!-- Validating YAML -->
     <dependency>
-      <groupId>org.yaml</groupId>
-      <artifactId>snakeyaml</artifactId>
-      <version>1.33</version>
+      <groupId>io.jenkins.plugins</groupId>
+      <artifactId>snakeyaml-api</artifactId>
     </dependency>
 
     <!-- OnceRetentionStrategy -->
