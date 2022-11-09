@@ -554,6 +554,11 @@ public class CodeBuildCloud extends Cloud {
     LOGGER.info(String.format("Provisioning %s nodes for label '%s' (%s already provisioning)", numToLaunch, labelName,
         stillProvisioning));
 
+    if (numToLaunch == 0) {
+      return list; // Skip setting last provision time. Shouldnt apply since we didnt provision
+                   // anything.
+    }
+
     for (int i = 0; i < numToLaunch; i++) {
 
       // Unique node names
