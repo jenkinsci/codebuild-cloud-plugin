@@ -473,6 +473,17 @@ public class CodeBuildCloud extends Cloud {
   // Implementation methods for provisioning codebuild cloud agents
 
   private transient long lastProvisionTime = 0; // keep track of to not create too many agents
+
+  private long getLastProvisionTime() {
+    LOGGER.finest("Current Provision time: " + String.valueOf(lastProvisionTime));
+    return lastProvisionTime;
+  }
+
+  private void setLastProvisionTime(long provisionTime) {
+    LOGGER.finest("Setting Provision time: " + String.valueOf(provisionTime));
+    lastProvisionTime = provisionTime;
+  }
+
   private transient CodeBuildClientWrapper client;
 
   /** {@inheritDoc} */
@@ -526,7 +537,8 @@ public class CodeBuildCloud extends Cloud {
     }
 
     // guard against double-provisioning with a 1 second cooldown clock
-    long timeDiff = System.currentTimeMillis() - lastProvisionTime;
+    long timeDiff = System.currentTimeMillis() - getLastProvisionTime();
+    LOGGER.finest("Diff in provison time: " + String.valueOf(timeDiff));
     if (timeDiff < 1000) {
       LOGGER.info(
           String.format("Provision of %s skipped, still on cooldown %sms of 1 second)", excessWorkload, timeDiff));
@@ -558,7 +570,7 @@ public class CodeBuildCloud extends Cloud {
       list.add(new NodeProvisioner.PlannedNode(displayName, nodeResolver, 1));
     }
 
-    lastProvisionTime = System.currentTimeMillis();
+    setLastProvisionTime(System.currentTimeMillis());
     return list;
 
   }
