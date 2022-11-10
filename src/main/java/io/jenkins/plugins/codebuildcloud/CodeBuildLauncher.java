@@ -112,7 +112,7 @@ public class CodeBuildLauncher extends JNLPLauncher {
     LOGGER.info(String.format("Waiting for agent '%s' to connect with build ID: %s...", computer, buildId));
 
     int checkbuildcounter = 0;
-    for (int i = 0; i < cloud.getAgentTimeout() * (1000 / sleepMs); i++) {
+    for (int i = 0; i < cloud.getAgentConnectTimeout() * (1000 / sleepMs); i++) {
       if (computer.isOnline() && computer.isAcceptingTasks()) {
         LOGGER.info(String.format(" Agent '%s' connected to build ID: %s.", computer, buildId));
         return;

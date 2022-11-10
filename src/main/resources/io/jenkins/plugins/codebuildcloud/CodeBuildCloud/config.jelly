@@ -38,8 +38,8 @@
     <f:checkbox checked="${descriptor.defaultNoReconnect}"  />
   </f:entry>
 
-  <f:entry field="agentTimeout" title="${%Agent Timeout}">
-    <f:number  default="${descriptor.defaultAgentTimeout}"  />
+  <f:entry field="agentConnectTimeout" title="${%Agent Connection Timeout}">
+    <f:number  default="${descriptor.defaultAgentConnectTimeout}"  />
   </f:entry>
 
   <f:entry field="verifyIsCodeBuildIPOnJNLP" title="${%Verify AWS CodeBuild IP Addresses}">

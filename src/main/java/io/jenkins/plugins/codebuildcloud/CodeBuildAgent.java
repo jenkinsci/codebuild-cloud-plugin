@@ -34,7 +34,13 @@ public class CodeBuildAgent extends AbstractCloudSlave {
     this.setNumExecutors(1);
     this.setMode(Mode.EXCLUSIVE);
     this.setLabelString(cloud.getLabel());
-    this.setRetentionStrategy(new OnceRetentionStrategy(cloud.getAgentTimeout() / 60 + 1));
+
+    // This is just in case we dont get a proper exit from the worker.
+    // This should match the connect timeout + a little bit. After that - if it is
+    // idle we can clean up right away.
+    int idleCheck = 2 * 60;
+    this.setRetentionStrategy(new CodeBuildRetentionStrategy(idleCheck));
+
     this.setNodeProperties(Collections.emptyList());
     this.cloud = cloud;
 

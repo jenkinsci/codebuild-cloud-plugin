@@ -67,7 +67,7 @@ public class CodeBuildCloud extends Cloud {
 
   private static final Logger LOGGER = Logger.getLogger(CodeBuildCloud.class.getName());
 
-  private static final Integer DEFAULT_AGENT_TIMEOUT = 180;
+  private static final Integer DEFAULT_AGENT_CONNECT_TIMEOUT = 180;
   private static final Integer DEFAULT_MAX_AGENTS = 50;
   private static final String DEFAULT_PROTOCOLS = "JNLP4-connect";
   private static final Boolean DEFAULT_NORECONNECT = true;
@@ -92,7 +92,7 @@ public class CodeBuildCloud extends Cloud {
   private String label;
 
   @NonNull
-  private Integer agentTimeout;
+  private Integer agentConnectTimeout;
 
   @NonNull
   private Secret controllerIdentity;
@@ -151,7 +151,7 @@ public class CodeBuildCloud extends Cloud {
       @NonNull String credentialId,
       @NonNull String region,
       @NonNull String label,
-      @NonNull Integer agentTimeout,
+      @NonNull Integer agentConnectTimeout,
       @NonNull String dockerImage,
       @NonNull String dockerImagePullCredentials,
       @NonNull String computeType,
@@ -176,7 +176,7 @@ public class CodeBuildCloud extends Cloud {
     this.credentialId = credentialId;
     this.region = region;
     this.label = label;
-    this.agentTimeout = agentTimeout;
+    this.agentConnectTimeout = agentConnectTimeout;
     this.dockerImage = dockerImage;
     this.computeType = computeType;
     this.environmentType = environmentType;
@@ -216,7 +216,7 @@ public class CodeBuildCloud extends Cloud {
     LOGGER.info("CodeBuild credentialId: " + this.credentialId);
     LOGGER.info("CodeBuild region: " + this.region);
     LOGGER.info("CodeBuild label: " + this.label);
-    LOGGER.info("CodeBuild agentTimeout: " + this.agentTimeout);
+    LOGGER.info("CodeBuild agentTimeout: " + this.agentConnectTimeout);
     LOGGER.info("CodeBuild dockerImage: " + this.dockerImage);
     LOGGER.info("CodeBuild dockerImagePullCredentials: " + this.dockerImagePullCredentials);
     LOGGER.info("CodeBuild verifyIsCodeBuildIPOnJNLP: " + this.verifyIsCodeBuildIPOnJNLP);
@@ -303,13 +303,13 @@ public class CodeBuildCloud extends Cloud {
   }
 
   @NonNull
-  public Integer getAgentTimeout() {
-    return agentTimeout;
+  public Integer getAgentConnectTimeout() {
+    return agentConnectTimeout;
   }
 
   @DataBoundSetter
-  public void setAgentTimeout(Integer agentTimeout) {
-    this.agentTimeout = agentTimeout;
+  public void setAgentConnectTimeout(Integer agentTimeout) {
+    this.agentConnectTimeout = agentTimeout;
   }
 
   @NonNull
@@ -902,15 +902,15 @@ public class CodeBuildCloud extends Cloud {
     }
 
     @POST
-    public FormValidation doCheckAgentTimeout(@QueryParameter String value) {
+    public FormValidation doCheckAgentConnectTimeout(@QueryParameter String value) {
       // Realistically an agent connection needs to be above 60 seconds
-      return checkValue(value, 60, Integer.MAX_VALUE, "Invalid Agent Timeout Specified. ");
+      return checkValue(value, 120, Integer.MAX_VALUE, "Invalid Agent Timeout Specified. ");
     }
 
     // Special naming convention that makes jelly work get****
     @POST
-    public Integer getDefaultAgentTimeout() {
-      return DEFAULT_AGENT_TIMEOUT;
+    public Integer getDefaultAgentConnectTimeout() {
+      return DEFAULT_AGENT_CONNECT_TIMEOUT;
     }
 
     // Special naming convention that makes jelly work get****
