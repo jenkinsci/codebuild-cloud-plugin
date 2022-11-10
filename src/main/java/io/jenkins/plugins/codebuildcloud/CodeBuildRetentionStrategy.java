@@ -30,10 +30,10 @@ public class CodeBuildRetentionStrategy extends CloudRetentionStrategy
     // connection yet)
     if (c.isLaunchSupported()) {
       // Let the launcher handle it and dont activate any OnceRetentionStrategies yet.
-      LOGGER.info("Retention strategy check disabled - letting launcher handle deletion");
+      LOGGER.finest("Retention strategy check disabled - letting Launcher class handle lifecycle");
       return 1;
     } else {
-      LOGGER.info("Retention strategy check enabled");
+      LOGGER.finest("Retention strategy OnceRetentionStrategy check enabled");
       return realStrat.check(c);
     }
   }
