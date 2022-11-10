@@ -35,7 +35,7 @@ public class CodeBuildLauncher extends JNLPLauncher {
   private static final int CHECK_WITH_CODEBUILD_STATUS = Math.multiplyExact(30, 1000);
 
   public final CodeBuildCloud cloud;
-  private boolean launched;
+  private boolean launched = false;
 
   public CodeBuildLauncher(CodeBuildCloud cloud) {
     super(true);
@@ -106,7 +106,6 @@ public class CodeBuildLauncher extends JNLPLauncher {
       }
     }
   }
-
 
   private void waitForAgentConnection(@NonNull SlaveComputer computer, @NonNull String buildId, @NonNull Node node)
       throws TimeoutException, InvalidObjectException, InterruptedException {

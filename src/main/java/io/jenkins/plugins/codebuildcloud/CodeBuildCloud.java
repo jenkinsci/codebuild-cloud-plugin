@@ -522,8 +522,24 @@ public class CodeBuildCloud extends Cloud {
    * Jenkins host.
    */
   private long countStillProvisioning() {
-    return getJenkins().getNodes().stream().filter(CodeBuildAgent.class::isInstance).map(CodeBuildAgent.class::cast)
-        .filter(a -> a.getLauncher().isLaunchSupported()).count();
+
+    long mycount = 0;
+
+    for (Node s : getJenkins().getNodes()) {
+      if (s instanceof CodeBuildAgent) {
+        CodeBuildAgent d = (CodeBuildAgent) s;
+        if (!d.terminated) { // Even if node still exists and not cleaned up yet - time to not count it since
+                             // its on its way out.
+          if (d.getLauncher().isLaunchSupported()) {
+            // Still launching - means still provisioning
+            mycount += 1;
+          } else {
+            // Provisioned and in use - not still provisiong
+          }
+        }
+      }
+    }
+    return mycount;
   }
 
   /** {@inheritDoc} */
