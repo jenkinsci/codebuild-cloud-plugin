@@ -25,7 +25,6 @@ import com.cloudbees.jenkins.plugins.awscredentials.AWSCredentialsHelper;
 import com.cloudbees.jenkins.plugins.awscredentials.AmazonWebServicesCredentials;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.LoadingCache;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.ProxyConfiguration;
@@ -40,7 +39,7 @@ public class CodeBuildClientWrapper {
 
   private static final Logger LOGGER = Logger.getLogger(CodeBuildClientWrapper.class.getName());
 
-  private static Cache<String, Integer> myCache = Caffeine.newBuilder()
+  private static transient Cache<String, Integer> myCache = Caffeine.newBuilder()
       .expireAfterWrite(1, TimeUnit.HOURS).build();
 
   private static AWSCodeBuild buildClient(String credentialsId, String region, Jenkins instance) {
