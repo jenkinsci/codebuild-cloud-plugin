@@ -46,14 +46,15 @@
     <f:checkbox  />
   </f:entry>
   
-  
-
-
   <f:entry title="${%Build Specification}" field="buildSpec">
         <f:textarea />
   </f:entry>
 
   <f:advanced>
+  <f:entry field="maxAgents" title="${%Max Agents}">
+    <f:number  default="${descriptor.defaultMaxAgents}"  />
+  </f:entry>
+
       <f:entry field="direct" title="${%Direct Connection}">
       <f:textbox />
     </f:entry>

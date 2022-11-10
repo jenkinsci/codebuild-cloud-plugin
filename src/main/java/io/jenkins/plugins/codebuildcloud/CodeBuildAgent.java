@@ -18,7 +18,7 @@ import hudson.slaves.ComputerLauncher;
 
 public class CodeBuildAgent extends AbstractCloudSlave {
 
-  private final transient CodeBuildCloud cloud;
+  final transient CodeBuildCloud cloud;
   private static final Logger LOGGER = Logger.getLogger(CodeBuildAgent.class.getName());
   private static final long serialVersionUID = 1; // SpotBugs
 
@@ -54,11 +54,13 @@ public class CodeBuildAgent extends AbstractCloudSlave {
     if (getLauncher() instanceof CodeBuildLauncher) {
       CodeBuildComputer comp = (CodeBuildComputer) getComputer();
       if (comp == null) {
+        terminated = true;
         return;
       }
 
       String buildId = comp.getBuildId();
       if (StringUtils.isBlank(buildId)) {
+        terminated = true;
         return;
       }
 

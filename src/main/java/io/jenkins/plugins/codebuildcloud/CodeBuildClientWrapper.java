@@ -3,24 +3,29 @@ package io.jenkins.plugins.codebuildcloud;
 import java.io.InvalidObjectException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-
 
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.services.codebuild.AWSCodeBuild;
 import com.amazonaws.services.codebuild.AWSCodeBuildClientBuilder;
 import com.amazonaws.services.codebuild.model.BatchGetBuildsRequest;
 import com.amazonaws.services.codebuild.model.BatchGetBuildsResult;
+import com.amazonaws.services.codebuild.model.BatchGetProjectsRequest;
+import com.amazonaws.services.codebuild.model.BatchGetProjectsResult;
 import com.amazonaws.services.codebuild.model.Build;
 import com.amazonaws.services.codebuild.model.ListProjectsRequest;
 import com.amazonaws.services.codebuild.model.ListProjectsResult;
+import com.amazonaws.services.codebuild.model.Project;
 import com.amazonaws.services.codebuild.model.StartBuildRequest;
 import com.amazonaws.services.codebuild.model.StartBuildResult;
 import com.amazonaws.services.codebuild.model.StopBuildRequest;
 import com.cloudbees.jenkins.plugins.awscredentials.AWSCredentialsHelper;
 import com.cloudbees.jenkins.plugins.awscredentials.AmazonWebServicesCredentials;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.ProxyConfiguration;
@@ -34,6 +39,9 @@ public class CodeBuildClientWrapper {
   }
 
   private static final Logger LOGGER = Logger.getLogger(CodeBuildClientWrapper.class.getName());
+
+  private static Cache<String, Integer> myCache = Caffeine.newBuilder()
+      .expireAfterWrite(1, TimeUnit.HOURS).build();
 
   private static AWSCodeBuild buildClient(String credentialsId, String region, Jenkins instance) {
 
@@ -125,4 +133,28 @@ public class CodeBuildClientWrapper {
     }
   }
 
+  private Integer _getMaxConcurrentJobs(@NonNull String jobName) {
+
+    Integer result = Integer.MAX_VALUE;
+
+    try {
+      BatchGetProjectsResult res = this._client.batchGetProjects(new BatchGetProjectsRequest().withNames(jobName));
+      assert res.getProjects().size() == 1;
+      Project myproj = res.getProjects().get(0);
+
+      if (myproj.getConcurrentBuildLimit() != null) {
+        result = myproj.getConcurrentBuildLimit();
+      }
+    } catch (Exception e) {
+      LOGGER.log(Level.SEVERE, "Unable to determine codebuild project size", e);
+    }
+
+    LOGGER.finest("Total possible concurrent jobs  is being set to " + result);
+    return result;
+  }
+
+  public Integer getMaxConcurrentJobs(@NonNull String jobName) {
+    return myCache.get(jobName, j -> _getMaxConcurrentJobs(j));
+
+  }
 }
