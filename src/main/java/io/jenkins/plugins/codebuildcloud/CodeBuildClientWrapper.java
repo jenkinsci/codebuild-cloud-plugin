@@ -104,7 +104,7 @@ public class CodeBuildClientWrapper {
     // Run request to ask Codebuild status of the build. This allows us to fail fast
     // on this side of the connection.
     CodeBuildStatus status = getBuildStatus(buildId);
-    LOGGER.info("Current Build Status: " + status.name());
+    LOGGER.finest("Current Build Status: buildId - " + buildId + " Status: " + status.name());
 
     if (invalidStatuses.contains(status)) {
       throw new InvalidObjectException("Invalid CodeBuild status detected");
@@ -122,7 +122,7 @@ public class CodeBuildClientWrapper {
     // No other use cases make sense to stop the build right?
     if (status == CodeBuildStatus.IN_PROGRESS) {
       try {
-        LOGGER.info(String.format("Stopping build ID: %s", buildId));
+        LOGGER.finest(String.format("Stopping build ID: %s", buildId));
         _client.stopBuild(new StopBuildRequest().withId(buildId));
       } catch (Exception e) {
         LOGGER.severe(String.format("Exception while attempting to stop build: %s.  Exception %s", e.getMessage(), e));

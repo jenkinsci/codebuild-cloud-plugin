@@ -618,7 +618,7 @@ public class CodeBuildCloud extends Cloud {
     // user plugin settings
     long totalPossibleToProvision = totalCanProvision();
     if (totalPossibleToProvision <= 0) {
-      LOGGER.info(
+      LOGGER.finest(
           String.format(
               "Cannot provision, detected our maximum possible to provision is <= 0 currently: %s.)",
               totalPossibleToProvision));
@@ -630,7 +630,7 @@ public class CodeBuildCloud extends Cloud {
     long timeDiff = System.currentTimeMillis() - getLastProvisionTime();
     LOGGER.finest("Diff in provison time: " + String.valueOf(timeDiff));
     if (timeDiff < 5000) {
-      LOGGER.info(
+      LOGGER.finest(
           String.format("Provision of %s skipped, still on cooldown %sms of 5 seconds)", excessWorkload, timeDiff));
       return list;
     }
@@ -643,7 +643,7 @@ public class CodeBuildCloud extends Cloud {
     long numToLaunch = Math.min(totalPossibleToProvision, excessWorkload);
 
     if (numToLaunch == 0) {
-      LOGGER.info(
+      LOGGER.finest(
           String.format("Provision of excess workload (%s) skipped, total can launch is 0", excessWorkload));
       return list; // Skip setting last provision time. Shouldnt apply since we didnt provision
                    // anything.

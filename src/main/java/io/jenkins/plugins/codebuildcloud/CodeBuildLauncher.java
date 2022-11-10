@@ -109,7 +109,7 @@ public class CodeBuildLauncher extends JNLPLauncher {
 
   private void waitForAgentConnection(@NonNull SlaveComputer computer, @NonNull String buildId, @NonNull Node node)
       throws TimeoutException, InvalidObjectException, InterruptedException {
-    LOGGER.info(String.format("Waiting for agent '%s' to connect to build ID: %s...", computer, buildId));
+    LOGGER.info(String.format("Waiting for agent '%s' to connect with build ID: %s...", computer, buildId));
 
     int checkbuildcounter = 0;
     for (int i = 0; i < cloud.getAgentTimeout() * (1000 / sleepMs); i++) {

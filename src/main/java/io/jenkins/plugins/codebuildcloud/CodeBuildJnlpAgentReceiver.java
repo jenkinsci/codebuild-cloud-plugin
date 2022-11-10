@@ -39,7 +39,7 @@ public class CodeBuildJnlpAgentReceiver extends DefaultJnlpSlaveReceiver {
   private static transient List<IPAddressString> allowedIPs = new ArrayList<IPAddressString>();
 
   private static String getAmazonIPInfo() {
-    LOGGER.info("getAmazonIPInfo BEGIN");
+    LOGGER.finest("getAmazonIPInfo BEGIN");
     HttpClient client = HttpClient.newBuilder()
         .version(Version.HTTP_1_1)
         .followRedirects(Redirect.NORMAL)
@@ -53,11 +53,11 @@ public class CodeBuildJnlpAgentReceiver extends DefaultJnlpSlaveReceiver {
     try {
       HttpResponse<String> resp = client.send(request, BodyHandlers.ofString());
       assert resp.statusCode() == 200;
-      LOGGER.info("getAmazonIPInfo END");
+      LOGGER.finest("getAmazonIPInfo END");
       return resp.body();
     } catch (IOException | InterruptedException e) {
       // Swallow
-      LOGGER.info("getAmazonIPInfo END FAIL");
+      LOGGER.finest("getAmazonIPInfo END FAIL");
       return null;
     }
   }
@@ -88,8 +88,9 @@ public class CodeBuildJnlpAgentReceiver extends DefaultJnlpSlaveReceiver {
 
     lastcacheTime = System.currentTimeMillis();
 
-    // Defaults to not allow any IP addresses if we dont properly get amazon information.
-    allowedIPs = new ArrayList<IPAddressString>(); 
+    // Defaults to not allow any IP addresses if we dont properly get amazon
+    // information.
+    allowedIPs = new ArrayList<IPAddressString>();
     String body = getAmazonIPInfo();
     if (body == null) {
       return;
@@ -168,7 +169,7 @@ public class CodeBuildJnlpAgentReceiver extends DefaultJnlpSlaveReceiver {
       }
     }
 
-    LOGGER.fine("Is Valid IP: " + valid_ip);
+    LOGGER.finest("Is Valid IP: " + valid_ip);
     if (valid_ip) {
       // Is a CodeBuild IP - allow the rest of the logic to run.
       super.afterProperties(event);
