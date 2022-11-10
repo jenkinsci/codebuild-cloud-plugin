@@ -54,6 +54,7 @@ import hudson.util.ListBoxModel;
 import hudson.util.Secret;
 import io.jenkins.cli.shaded.org.apache.commons.lang.NotImplementedException;
 import io.jenkins.cli.shaded.org.apache.commons.lang.NullArgumentException;
+import jakarta.annotation.Nonnull;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 
@@ -66,7 +67,8 @@ public class CodeBuildCloud extends Cloud {
 
   private static final Logger LOGGER = Logger.getLogger(CodeBuildCloud.class.getName());
 
-  private static final Integer DEFAULT_AGENT_TIMEOUT = 180;
+  private static final Integer DEFAULT_AGENT_CONNECT_TIMEOUT = 180;
+  private static final Integer DEFAULT_MAX_AGENTS = 50;
   private static final String DEFAULT_PROTOCOLS = "JNLP4-connect";
   private static final Boolean DEFAULT_NORECONNECT = true;
 
@@ -90,7 +92,7 @@ public class CodeBuildCloud extends Cloud {
   private String label;
 
   @NonNull
-  private Integer agentTimeout;
+  private Integer agentConnectTimeout;
 
   @NonNull
   private Secret controllerIdentity;
@@ -140,19 +142,23 @@ public class CodeBuildCloud extends Cloud {
   @NonNull
   private String dockerImagePullCredentials;
 
+  @Nonnull
+  private Integer maxAgents;
+
   @DataBoundConstructor
   public CodeBuildCloud(@NonNull String name,
       @NonNull String codeBuildProjectName,
       @NonNull String credentialId,
       @NonNull String region,
       @NonNull String label,
-      @NonNull Integer agentTimeout,
+      @NonNull Integer agentConnectTimeout,
       @NonNull String dockerImage,
       @NonNull String dockerImagePullCredentials,
       @NonNull String computeType,
       @NonNull String environmentType,
       @NonNull String buildSpec,
       @NonNull Boolean verifyIsCodeBuildIPOnJNLP,
+      @NonNull Integer maxAgents,
 
       // JNLP Params
       @NonNull String direct,
@@ -164,19 +170,20 @@ public class CodeBuildCloud extends Cloud {
       @NonNull String tunnel,
       @NonNull String url,
       @NonNull Boolean webSocket) throws NotImplementedException {
-    super(StringUtils.isNotBlank(name) ? name : "codebuildcloud_" + getJenkins().clouds.size());
+    super(StringUtils.isNotBlank(name) ? name : "cbc-" + label);
 
     this.codeBuildProjectName = codeBuildProjectName;
     this.credentialId = credentialId;
     this.region = region;
     this.label = label;
-    this.agentTimeout = agentTimeout;
+    this.agentConnectTimeout = agentConnectTimeout;
     this.dockerImage = dockerImage;
     this.computeType = computeType;
     this.environmentType = environmentType;
     this.buildSpec = buildSpec;
     this.dockerImagePullCredentials = dockerImagePullCredentials;
     this.verifyIsCodeBuildIPOnJNLP = verifyIsCodeBuildIPOnJNLP;
+    this.maxAgents = maxAgents;
 
     // JNLP params
     this.direct = direct;
@@ -196,6 +203,10 @@ public class CodeBuildCloud extends Cloud {
     }
     this.controllerIdentity = Secret.fromString(myIdentity);
 
+    if (maxAgents == null || maxAgents == 0) {
+      this.maxAgents = DEFAULT_MAX_AGENTS;
+    }
+
     LOGGER.info(" Initializing Cloud");
     // logConfig(); //<-- Use this if having trouble with configuration)
   }
@@ -205,10 +216,11 @@ public class CodeBuildCloud extends Cloud {
     LOGGER.info("CodeBuild credentialId: " + this.credentialId);
     LOGGER.info("CodeBuild region: " + this.region);
     LOGGER.info("CodeBuild label: " + this.label);
-    LOGGER.info("CodeBuild agentTimeout: " + this.agentTimeout);
+    LOGGER.info("CodeBuild agentTimeout: " + this.agentConnectTimeout);
     LOGGER.info("CodeBuild dockerImage: " + this.dockerImage);
     LOGGER.info("CodeBuild dockerImagePullCredentials: " + this.dockerImagePullCredentials);
     LOGGER.info("CodeBuild verifyIsCodeBuildIPOnJNLP: " + this.verifyIsCodeBuildIPOnJNLP);
+    LOGGER.info("Codebuild maxAgents:" + maxAgents);
     LOGGER.info("CodeBuild computeType: " + this.computeType);
     LOGGER.info("CodeBuild direct: " + this.direct);
     LOGGER.info("CodeBuild disableHttpsCertValidation: " + this.disableHttpsCertValidation);
@@ -291,13 +303,13 @@ public class CodeBuildCloud extends Cloud {
   }
 
   @NonNull
-  public Integer getAgentTimeout() {
-    return agentTimeout;
+  public Integer getAgentConnectTimeout() {
+    return agentConnectTimeout;
   }
 
   @DataBoundSetter
-  public void setAgentTimeout(Integer agentTimeout) {
-    this.agentTimeout = agentTimeout;
+  public void setAgentConnectTimeout(Integer agentTimeout) {
+    this.agentConnectTimeout = agentTimeout;
   }
 
   @NonNull
@@ -318,6 +330,16 @@ public class CodeBuildCloud extends Cloud {
   @DataBoundSetter
   public void setControllerIdentity(Secret controllerIdentity) {
     this.controllerIdentity = controllerIdentity;
+  }
+
+  @NonNull
+  public Integer getMaxAgents() {
+    return maxAgents;
+  }
+
+  @DataBoundSetter
+  public void setMaxAgents(Integer maxAgents) {
+    this.maxAgents = maxAgents;
   }
 
   @NonNull
@@ -473,6 +495,17 @@ public class CodeBuildCloud extends Cloud {
   // Implementation methods for provisioning codebuild cloud agents
 
   private transient long lastProvisionTime = 0; // keep track of to not create too many agents
+
+  private long getLastProvisionTime() {
+    LOGGER.finest("Current Provision time: " + String.valueOf(lastProvisionTime));
+    return lastProvisionTime;
+  }
+
+  private void setLastProvisionTime(long provisionTime) {
+    LOGGER.finest("Setting Provision time: " + String.valueOf(provisionTime));
+    lastProvisionTime = provisionTime;
+  }
+
   private transient CodeBuildClientWrapper client;
 
   /** {@inheritDoc} */
@@ -511,8 +544,64 @@ public class CodeBuildCloud extends Cloud {
    * Jenkins host.
    */
   private long countStillProvisioning() {
-    return getJenkins().getNodes().stream().filter(CodeBuildAgent.class::isInstance).map(CodeBuildAgent.class::cast)
-        .filter(a -> a.getLauncher().isLaunchSupported()).count();
+
+    long mycount = 0;
+
+    for (Node s : getJenkins().getNodes()) {
+      if (s instanceof CodeBuildAgent) {
+        CodeBuildAgent d = (CodeBuildAgent) s;
+        if (d.cloud.equals(this)) {
+          if (!d.terminated) { // Even if node still exists and not cleaned up yet - time to not count it since
+                               // its on its way out.
+            if (d.getLauncher().isLaunchSupported()) {
+              // Still launching - means still provisioning
+              mycount += 1;
+            } else {
+              // Provisioned and in use - not still provisiong
+            }
+          }
+        }
+      }
+    }
+    return mycount;
+  }
+
+  private long totalProvisionedOrProvisioning() {
+
+    long mycount = 0;
+
+    // LOGGER.info("Count of Nodes: " + getJenkins().getNodes().size());
+    for (Node s : getJenkins().getNodes()) {
+      if (s instanceof CodeBuildAgent) {
+        CodeBuildAgent d = (CodeBuildAgent) s;
+        if (d.cloud.equals(this)) {
+          if (!d.terminated) { // if not terminated - assume is a running codebuild project
+            mycount += 1;
+          }
+        }
+      }
+    }
+    return mycount;
+  }
+
+  private long totalCanProvision() {
+
+    // Calculating here if CodeBuild Project is configured to limit
+    long totalConcurrentJobsPossibleFromCBP = getClient().getMaxConcurrentJobs(codeBuildProjectName);
+    long totalProvisioned = totalProvisionedOrProvisioning();
+    LOGGER.finest("Total concurrent jobs from CB: " + totalConcurrentJobsPossibleFromCBP);
+    LOGGER.finest("Total concurrent jobs running/provisioning right now: " + totalProvisioned);
+
+    long totalPossibleToProvisionFromCB = totalConcurrentJobsPossibleFromCBP - totalProvisioned;
+    long totalPossibleToProvisionFromPlugin = getMaxAgents() - totalProvisioned;
+
+    // Who wins the codebuild project or the plugin config? Which ever one is lower
+    // The lower one wins due to :
+    // If its CB - our APIs will fail with 429's.
+    // If its maxAgents - the user has configured no more than N agents for this
+    // cloud config.
+    return Math.min(totalPossibleToProvisionFromCB, totalPossibleToProvisionFromPlugin);
+
   }
 
   /** {@inheritDoc} */
@@ -525,28 +614,50 @@ public class CodeBuildCloud extends Cloud {
       return list;
     }
 
-    // guard against double-provisioning with a 1 second cooldown clock
-    long timeDiff = System.currentTimeMillis() - lastProvisionTime;
-    if (timeDiff < 1000) {
-      LOGGER.info(
-          String.format("Provision of %s skipped, still on cooldown %sms of 1 second)", excessWorkload, timeDiff));
+    // guard against too many provisioned based on CodeBuild project settings or End
+    // user plugin settings
+    long totalPossibleToProvision = totalCanProvision();
+    if (totalPossibleToProvision <= 0) {
+      LOGGER.finest(
+          String.format(
+              "Cannot provision, detected our maximum possible to provision is <= 0 currently: %s.)",
+              totalPossibleToProvision));
+      return list;
+    }
+
+    // guard against double-provisioning with a 5 second cooldown clock (Should be
+    // more than enough)
+    long timeDiff = System.currentTimeMillis() - getLastProvisionTime();
+    LOGGER.finest("Diff in provison time: " + String.valueOf(timeDiff));
+    if (timeDiff < 5000) {
+      LOGGER.finest(
+          String.format("Provision of %s skipped, still on cooldown %sms of 5 seconds)", excessWorkload, timeDiff));
       return list;
     }
 
     // If we reach here its time to provision. This is because the label matches and
-    // the cooldown period has been hit.
+    // the cooldown period has been hit. If Jenkins still thinks there is excess
+    // workload - go create it.
+    // We take min here since no matter which case we have - we want the minimum
+    // number to launch.
+    long numToLaunch = Math.min(totalPossibleToProvision, excessWorkload);
+
+    if (numToLaunch == 0) {
+      LOGGER.finest(
+          String.format("Provision of excess workload (%s) skipped, total can launch is 0", excessWorkload));
+      return list; // Skip setting last provision time. Shouldnt apply since we didnt provision
+                   // anything.
+    }
 
     String labelName = label == null ? getLabel() : label.getDisplayName();
-    long stillProvisioning = countStillProvisioning();
-    long numToLaunch = Math.max(excessWorkload - stillProvisioning, 0);
     LOGGER.info(String.format("Provisioning %s nodes for label '%s' (%s already provisioning)", numToLaunch, labelName,
-        stillProvisioning));
+        countStillProvisioning()));
 
     for (int i = 0; i < numToLaunch; i++) {
 
       // Unique node names
       final String suffix = RandomStringUtils.randomAlphabetic(4);
-      final String displayName = String.format("%s.cb-%s", codeBuildProjectName, suffix);
+      final String displayName = String.format("%s.%s", name, suffix);
 
       final CodeBuildCloud cloud = this;
       final Future<Node> nodeResolver = Computer.threadPoolForRemoting.submit(() -> {
@@ -558,7 +669,7 @@ public class CodeBuildCloud extends Cloud {
       list.add(new NodeProvisioner.PlannedNode(displayName, nodeResolver, 1));
     }
 
-    lastProvisionTime = System.currentTimeMillis();
+    setLastProvisionTime(System.currentTimeMillis());
     return list;
 
   }
@@ -583,7 +694,7 @@ public class CodeBuildCloud extends Cloud {
           return FormValidation.ok();
         } else {
           return FormValidation
-              .error(error + ": Was outside of bounds of allowed valies.  Min: " + min + " Max: " + max);
+              .error(error + ": Was outside of bounds of allowed values.  Min: " + min + " Max: " + max);
         }
       } catch (Exception e) {
         return FormValidation.error(error + "  Exception: " + e.toString());
@@ -791,15 +902,27 @@ public class CodeBuildCloud extends Cloud {
     }
 
     @POST
-    public FormValidation doCheckAgentTimeout(@QueryParameter String value) {
+    public FormValidation doCheckAgentConnectTimeout(@QueryParameter String value) {
       // Realistically an agent connection needs to be above 60 seconds
-      return checkValue(value, 60, Integer.MAX_VALUE, "Invalid Agent Timeout Specified. ");
+      return checkValue(value, 120, Integer.MAX_VALUE, "Invalid Agent Timeout Specified. ");
     }
 
     // Special naming convention that makes jelly work get****
     @POST
-    public Integer getDefaultAgentTimeout() {
-      return DEFAULT_AGENT_TIMEOUT;
+    public Integer getDefaultAgentConnectTimeout() {
+      return DEFAULT_AGENT_CONNECT_TIMEOUT;
+    }
+
+    // Special naming convention that makes jelly work get****
+    @POST
+    public Integer getDefaultMaxAgents() {
+      return DEFAULT_MAX_AGENTS;
+    }
+
+    @POST
+    public FormValidation doCheckMaxAgents(@QueryParameter String value) {
+      // Realistically an agent connection needs to be above 60 seconds
+      return checkValue(value, 1, Integer.MAX_VALUE, "Invalid Max Agent Specified. ");
     }
 
     @POST

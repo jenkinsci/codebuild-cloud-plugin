@@ -35,7 +35,7 @@ public class CodeBuildLauncher extends JNLPLauncher {
   private static final int CHECK_WITH_CODEBUILD_STATUS = Math.multiplyExact(30, 1000);
 
   public final CodeBuildCloud cloud;
-  private boolean launched;
+  private boolean launched = false;
 
   public CodeBuildLauncher(CodeBuildCloud cloud) {
     super(true);
@@ -107,13 +107,12 @@ public class CodeBuildLauncher extends JNLPLauncher {
     }
   }
 
-
   private void waitForAgentConnection(@NonNull SlaveComputer computer, @NonNull String buildId, @NonNull Node node)
       throws TimeoutException, InvalidObjectException, InterruptedException {
-    LOGGER.info(String.format("Waiting for agent '%s' to connect to build ID: %s...", computer, buildId));
+    LOGGER.info(String.format("Waiting for agent '%s' to connect with build ID: %s...", computer, buildId));
 
     int checkbuildcounter = 0;
-    for (int i = 0; i < cloud.getAgentTimeout() * (1000 / sleepMs); i++) {
+    for (int i = 0; i < cloud.getAgentConnectTimeout() * (1000 / sleepMs); i++) {
       if (computer.isOnline() && computer.isAcceptingTasks()) {
         LOGGER.info(String.format(" Agent '%s' connected to build ID: %s.", computer, buildId));
         return;

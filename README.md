@@ -118,6 +118,8 @@ Makes Codebuild buildjobs a Jenkins Agent.
     `brew install maven`
     - `mvn verify` or `mvn clean install` to build
     - To run a local instance `mvn clean  hpi:run`
+  - Useful Maven calls
+    - Use for debug logging - `mvn clean hpi:run -Djava.util.logging.config.file=resources/logging.properties`
 
 
 

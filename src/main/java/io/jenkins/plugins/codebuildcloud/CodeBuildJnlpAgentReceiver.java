@@ -13,10 +13,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 import org.jenkinsci.remoting.engine.JnlpConnectionState;
 import org.jenkinsci.remoting.protocol.impl.ConnectionRefusalException;
+
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 import hudson.Extension;
 import hudson.model.Computer;
@@ -34,12 +38,13 @@ import net.sf.json.JSONObject;
 public class CodeBuildJnlpAgentReceiver extends DefaultJnlpSlaveReceiver {
   private static final Logger LOGGER = Logger.getLogger(CodeBuildComputer.class.getName());
 
-  private static transient long lastcacheTime = 0;
-
   private static transient List<IPAddressString> allowedIPs = new ArrayList<IPAddressString>();
+  private static transient int DEFAULT_CACHE_TIME_FOR_AWS_IPS = 24;
+  private static transient Cache<String, String> myIPCache = Caffeine.newBuilder()
+      .expireAfterWrite(DEFAULT_CACHE_TIME_FOR_AWS_IPS, TimeUnit.HOURS).build();
 
   private static String getAmazonIPInfo() {
-    LOGGER.info("getAmazonIPInfo BEGIN");
+    LOGGER.finest("getAmazonIPInfo BEGIN");
     HttpClient client = HttpClient.newBuilder()
         .version(Version.HTTP_1_1)
         .followRedirects(Redirect.NORMAL)
@@ -53,11 +58,11 @@ public class CodeBuildJnlpAgentReceiver extends DefaultJnlpSlaveReceiver {
     try {
       HttpResponse<String> resp = client.send(request, BodyHandlers.ofString());
       assert resp.statusCode() == 200;
-      LOGGER.info("getAmazonIPInfo END");
+      LOGGER.finest("getAmazonIPInfo END");
       return resp.body();
     } catch (IOException | InterruptedException e) {
       // Swallow
-      LOGGER.info("getAmazonIPInfo END FAIL");
+      LOGGER.finest("getAmazonIPInfo END FAIL");
       return null;
     }
   }
@@ -79,18 +84,12 @@ public class CodeBuildJnlpAgentReceiver extends DefaultJnlpSlaveReceiver {
   }
 
   private synchronized static void refreshCache() {
-    long timeDiff = System.currentTimeMillis() - lastcacheTime;
 
-    // Refresh every 24 hours?
-    if (!(timeDiff > 1000 * 60 * 60 * 24)) {
-      return;
-    }
+    String body = myIPCache.get("AWSIPS", a -> getAmazonIPInfo());
 
-    lastcacheTime = System.currentTimeMillis();
-
-    // Defaults to not allow any IP addresses if we dont properly get amazon information.
-    allowedIPs = new ArrayList<IPAddressString>(); 
-    String body = getAmazonIPInfo();
+    // Defaults to not allow any IP addresses if we dont properly get amazon
+    // information.
+    allowedIPs = new ArrayList<IPAddressString>();
     if (body == null) {
       return;
     }
@@ -168,7 +167,7 @@ public class CodeBuildJnlpAgentReceiver extends DefaultJnlpSlaveReceiver {
       }
     }
 
-    LOGGER.fine("Is Valid IP: " + valid_ip);
+    LOGGER.finest("Is Valid IP: " + valid_ip);
     if (valid_ip) {
       // Is a CodeBuild IP - allow the rest of the logic to run.
       super.afterProperties(event);

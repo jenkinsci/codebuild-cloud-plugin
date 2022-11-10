@@ -4,10 +4,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.logging.Logger;
 
-
-
 import org.apache.commons.lang.StringUtils;
-import org.jenkinsci.plugins.durabletask.executors.OnceRetentionStrategy;
 
 import com.amazonaws.services.codebuild.model.ResourceNotFoundException;
 
@@ -20,9 +17,11 @@ import hudson.slaves.ComputerLauncher;
 
 public class CodeBuildAgent extends AbstractCloudSlave {
 
-  private final transient CodeBuildCloud cloud;
+  final transient CodeBuildCloud cloud;
   private static final Logger LOGGER = Logger.getLogger(CodeBuildAgent.class.getName());
   private static final long serialVersionUID = 1; // SpotBugs
+
+  transient boolean terminated = false;
 
   public CodeBuildAgent(String name, @NonNull CodeBuildCloud cloud, @NonNull ComputerLauncher launcher)
       throws Descriptor.FormException, IOException {
@@ -34,7 +33,15 @@ public class CodeBuildAgent extends AbstractCloudSlave {
     this.setNumExecutors(1);
     this.setMode(Mode.EXCLUSIVE);
     this.setLabelString(cloud.getLabel());
-    this.setRetentionStrategy(new OnceRetentionStrategy(cloud.getAgentTimeout() / 60 + 1));
+
+    // Somewhat arbitrary
+    // We only care about this check if the worker is idle. If it is still launching
+    // we have disabled the OnceRetention policy. As such I think we can hard code
+    // this because the only way the RetentionPolicy terminates with the check - is
+    // if we missed one of the taskcompleted events.
+    // More of an edge condition than anything - which is why we wrote our own
+    this.setRetentionStrategy(new CodeBuildRetentionStrategy());
+
     this.setNodeProperties(Collections.emptyList());
     this.cloud = cloud;
 
@@ -49,18 +56,22 @@ public class CodeBuildAgent extends AbstractCloudSlave {
   @Override
   protected void _terminate(TaskListener listener) throws IOException, InterruptedException {
     listener.getLogger().println("Terminating agent: " + getDisplayName());
+    LOGGER.finest("Terminating agent: " + getDisplayName());
 
     if (getLauncher() instanceof CodeBuildLauncher) {
       CodeBuildComputer comp = (CodeBuildComputer) getComputer();
       if (comp == null) {
+        terminated = true;
         return;
       }
 
       String buildId = comp.getBuildId();
       if (StringUtils.isBlank(buildId)) {
+        terminated = true;
         return;
       }
 
+      LOGGER.finest("Terminating agent Step2: " + getDisplayName());
       try {
         cloud.getClient().stopBuild(buildId);
       } catch (ResourceNotFoundException e) {
@@ -68,6 +79,7 @@ public class CodeBuildAgent extends AbstractCloudSlave {
       } catch (Exception e) {
         LOGGER.severe(String.format("Failed to stop build ID: %s.  Exception: %s", buildId, e));
       }
+      terminated = true;
     }
   }
 }
