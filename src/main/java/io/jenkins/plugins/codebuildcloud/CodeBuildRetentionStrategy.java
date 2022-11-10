@@ -16,22 +16,26 @@ public class CodeBuildRetentionStrategy extends CloudRetentionStrategy
   private OnceRetentionStrategy realStrat;
   private static final Logger LOGGER = Logger.getLogger(OnceRetentionStrategy.class.getName());
 
-  public CodeBuildRetentionStrategy(int idleMinutes) {
-    super(idleMinutes);
-    realStrat = new OnceRetentionStrategy(idleMinutes);
+  public CodeBuildRetentionStrategy() {
+    super(1);
+    realStrat = new OnceRetentionStrategy(1);
   }
 
   @Override
   public long check(final AbstractCloudComputer c) {
 
-    LOGGER.info("Current Time:" + System.currentTimeMillis());
-    LOGGER.info("Idle Time:" + c.getIdleStartMilliseconds());
-    long idleMilliseconds = System.currentTimeMillis() - c.getIdleStartMilliseconds();
-
-    LOGGER.info("Idle Total Time: " + idleMilliseconds);
-    LOGGER.info("Computer Offline: " + c.isOffline());
-
-    return super.check(c);
+    // If we get to launched = true - we had an agent connection and now we need to
+    // activate the retention strategy. Otherwise we need this disabled
+    // So isLaunchSupported == true when launched == False (which means no agent
+    // connection yet)
+    if (c.isLaunchSupported()) {
+      // Let the launcher handle it and dont activate any OnceRetentionStrategies yet.
+      LOGGER.info("Retention strategy check disabled - letting launcher handle deletion");
+      return 1;
+    } else {
+      LOGGER.info("Retention strategy check enabled");
+      return realStrat.check(c);
+    }
   }
 
   @Override

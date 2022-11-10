@@ -5,7 +5,6 @@ import java.util.Collections;
 import java.util.logging.Logger;
 
 import org.apache.commons.lang.StringUtils;
-import org.jenkinsci.plugins.durabletask.executors.OnceRetentionStrategy;
 
 import com.amazonaws.services.codebuild.model.ResourceNotFoundException;
 
@@ -35,11 +34,13 @@ public class CodeBuildAgent extends AbstractCloudSlave {
     this.setMode(Mode.EXCLUSIVE);
     this.setLabelString(cloud.getLabel());
 
-    // This is just in case we dont get a proper exit from the worker.
-    // This should match the connect timeout + a little bit. After that - if it is
-    // idle we can clean up right away.
-    int idleCheck = 2 * 60;
-    this.setRetentionStrategy(new CodeBuildRetentionStrategy(idleCheck));
+    // Somewhat arbitrary
+    // We only care about this check if the worker is idle. If it is still launching
+    // we have disabled the OnceRetention policy. As such I think we can hard code
+    // this because the only way the RetentionPolicy terminates with the check - is
+    // if we missed one of the taskcompleted events.
+    // More of an edge condition than anything - which is why we wrote our own
+    this.setRetentionStrategy(new CodeBuildRetentionStrategy());
 
     this.setNodeProperties(Collections.emptyList());
     this.cloud = cloud;
