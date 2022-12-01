@@ -90,7 +90,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>durable-task</artifactId>
-      <version>501.ve5d4fc08b0be</version>
+      <version>503.v57154d18d478</version>
     </dependency>
 
     <!-- Caching https://github.com/ben-manes/caffeine -->
