@@ -20,6 +20,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.verb.POST;
+import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
 
@@ -845,7 +846,7 @@ public class CodeBuildCloud extends Cloud {
 
       // Validate its correct YAML at least
       try {
-        new Yaml(new SafeConstructor()).load(value);
+        new Yaml(new SafeConstructor(new LoaderOptions())).load(value);
         return FormValidation.ok();
       } catch (Exception e) {
         return FormValidation.error("Incorrect YAML DEFINITION: " + e.toString());
