@@ -73,7 +73,14 @@ public class CodeBuildAgent extends AbstractCloudSlave {
 
       LOGGER.finest("Terminating agent Step2: " + getDisplayName());
       try {
-        cloud.getClient().stopBuild(buildId);
+        if (comp.getCompletedWithoutErrors()) {
+          // Let the rest of the build process run within codebuild
+          // Do not call stop - let codebuild nateively end.
+          // See #https://github.com/jenkinsci/codebuild-cloud-plugin/issues/21
+        } else {
+          // Stop hard the build in codebuild. Saves jenkins admin money
+          cloud.getClient().stopBuild(buildId);
+        }
       } catch (ResourceNotFoundException e) {
         // this is fine. really.
       } catch (Exception e) {

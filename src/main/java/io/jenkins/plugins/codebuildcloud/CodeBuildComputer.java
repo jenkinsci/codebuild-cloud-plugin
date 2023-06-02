@@ -11,14 +11,21 @@ public class CodeBuildComputer extends AbstractCloudComputer<CodeBuildAgent> {
 
   private static final Logger LOGGER = Logger.getLogger(CodeBuildComputer.class.getName());
   private String buildId;
+  private boolean completedWithoutErrors;
 
   public CodeBuildComputer(CodeBuildAgent agent) {
     super(agent);
+
+    completedWithoutErrors = false;
   }
 
   // Package levl visibility
   String getBuildId() {
     return buildId;
+  }
+
+  boolean getCompletedWithoutErrors() {
+    return completedWithoutErrors;
   }
 
   // Package levl visibility
@@ -40,6 +47,8 @@ public class CodeBuildComputer extends AbstractCloudComputer<CodeBuildAgent> {
   public void taskCompleted(Executor executor, Queue.Task task, long durationMS) {
     super.taskCompleted(executor, task, durationMS);
     LOGGER.log(Level.FINE, "[{0}]: taskCompleted", this);
+    completedWithoutErrors = true;
+
   }
 
   /** {@inheritDoc} */
@@ -48,6 +57,7 @@ public class CodeBuildComputer extends AbstractCloudComputer<CodeBuildAgent> {
     super.taskCompletedWithProblems(executor, task, durationMS, problems);
     LOGGER.severe(String.format("[%s]: Task in job '%s' completed with problems in %sms", this,
         task.getFullDisplayName(), durationMS));
+    completedWithoutErrors = false;
   }
 
   /** {@inheritDoc} */
