@@ -121,6 +121,8 @@ Makes Codebuild buildjobs a Jenkins Agent.
   - Useful Maven calls
     - Use for debug logging - `mvn clean hpi:run -Djava.util.logging.config.file=resources/logging.properties`
 
+### Tips
+- When updating the `pom.xml` specifically jenkins dependencies like modules and plugins, use https://repo.jenkins-ci.org/public/org to determine correct versions.  While there might be newer versions in maven central or other repositories, it will fail in Github Actions.
 
 
 ### Helpful Script Console Commands

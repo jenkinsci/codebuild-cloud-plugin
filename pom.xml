@@ -68,14 +68,14 @@
     <dependency>
       <groupId>org.jenkins-ci.modules</groupId>
       <artifactId>instance-identity</artifactId>
-      <version>172.vc938a_1b_30112</version>
+      <version>142.v04572ca_5b_265</version>
       <scope>compile</scope>
     </dependency>
 
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>aws-credentials</artifactId>
-      <version>217.veb_06c501fa_cd</version>
+      <version>191.vcb_f183ce58b_9</version>
     </dependency>
 
     <!-- Validation of CodeBuild IPs -->
@@ -95,7 +95,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>durable-task</artifactId>
-      <version>509.vb_7a_4421ef6a_5</version>
+      <version>507.v050055d0cb_dd</version>
     </dependency>
 
     <!-- Caching https://github.com/ben-manes/caffeine -->
