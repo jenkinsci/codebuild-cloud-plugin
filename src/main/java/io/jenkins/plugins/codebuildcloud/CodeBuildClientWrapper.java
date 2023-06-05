@@ -116,6 +116,8 @@ public class CodeBuildClientWrapper {
 
   public void stopBuild(@NonNull String buildId) {
 
+    LOGGER.finest(String.format("Stop Build Requested for build ID: %s", buildId));
+
     CodeBuildStatus status = getBuildStatus(buildId);
 
     // No other use cases make sense to stop the build right?
