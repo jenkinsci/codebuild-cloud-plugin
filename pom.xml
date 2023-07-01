@@ -62,7 +62,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.aws-java-sdk</groupId>
       <artifactId>aws-java-sdk-codebuild</artifactId>
-      <version>1.12.447-382.vda_68e2007233</version>
+      <version>1.12.481-392.v8b_291cfcda_09</version>
     </dependency>
 
     <dependency>
