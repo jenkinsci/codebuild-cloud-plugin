@@ -198,13 +198,13 @@ public class CodeBuildLauncher extends JNLPLauncher {
       }
     } else if (cloud.getWebSocket()) { // websocket use case
       mylist.add(createEnvVariable("JENKINS_WEB_SOCKET", "true"));
-      mylist.add(createEnvVariable("JENKINS_URL", cloud.getUrl()));
+      mylist.add(createEnvVariable("JENKINS_URL", cloud.getJenkinsUrl()));
     } else {
       if (StringUtils.isNotEmpty(cloud.getTunnel())) {
         mylist.add(createEnvVariable("JENKINS_TUNNEL", cloud.getTunnel()));
       }
 
-      mylist.add(createEnvVariable("JENKINS_URL", cloud.getUrl()));
+      mylist.add(createEnvVariable("JENKINS_URL", cloud.getJenkinsUrl()));
 
       if (StringUtils.isNotEmpty(proxyCredentials)) {
         mylist.add(createEnvVariable("JENKINS_CODEBUILD_PROXY_CREDENTIALS",
@@ -230,7 +230,7 @@ public class CodeBuildLauncher extends JNLPLauncher {
     // Extra helper environment variables for downloading the JAR file instead of
     // over the internet
     try {
-      java.net.URL myurl = new java.net.URL(cloud.getUrl());
+      java.net.URL myurl = new java.net.URL(cloud.getJenkinsUrl());
 
       mylist.add(createEnvVariable("JENKINS_CODEBUILD_AGENT_URL",
           myurl.getProtocol() + "://" + myurl.getAuthority() + "/jnlpJars/agent.jar"));

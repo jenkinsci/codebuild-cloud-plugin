@@ -12,6 +12,8 @@ import java.util.concurrent.Future;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.servlet.ServletException;
+
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.main.modules.instance_identity.InstanceIdentity;
@@ -24,7 +26,7 @@ import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
 
-import com.amazonaws.SdkClientException;
+import com.amazonaws.AmazonClientException;
 import com.amazonaws.regions.DefaultAwsRegionProviderChain;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.RegionUtils;
@@ -123,7 +125,7 @@ public class CodeBuildCloud extends Cloud {
   private String tunnel;
 
   @NonNull
-  private String url;
+  private String jenkinsUrl;
 
   @NonNull
   private Boolean webSocket;
@@ -169,9 +171,10 @@ public class CodeBuildCloud extends Cloud {
       @NonNull String protocols,
       @NonNull String proxyCredentialsId,
       @NonNull String tunnel,
-      @NonNull String url,
+      @NonNull String jenkinsUrl,
       @NonNull Boolean webSocket) throws NotImplementedException {
-    super(StringUtils.isNotBlank(name) ? name : "cbc-" + label);
+
+    super(name);
 
     this.codeBuildProjectName = codeBuildProjectName;
     this.credentialId = credentialId;
@@ -194,7 +197,7 @@ public class CodeBuildCloud extends Cloud {
     this.protocols = protocols;
     this.proxyCredentialsId = proxyCredentialsId;
     this.tunnel = tunnel;
-    this.url = url;
+    this.jenkinsUrl = jenkinsUrl;
     this.webSocket = webSocket;
 
     // Needed if skipping HTTPS call
@@ -209,10 +212,11 @@ public class CodeBuildCloud extends Cloud {
     }
 
     LOGGER.info(" Initializing Cloud");
-    // logConfig(); //<-- Use this if having trouble with configuration)
+    // logConfig(); // <-- Use this if having trouble with configuration)
   }
 
   private void logConfig() {
+    LOGGER.info("CodeBuild name: " + this.name);
     LOGGER.info("CodeBuild Project Name: " + this.codeBuildProjectName);
     LOGGER.info("CodeBuild credentialId: " + this.credentialId);
     LOGGER.info("CodeBuild region: " + this.region);
@@ -230,11 +234,12 @@ public class CodeBuildCloud extends Cloud {
     LOGGER.info("CodeBuild protocols: " + this.protocols);
     LOGGER.info("CodeBuild proxyCredentialsId: " + this.proxyCredentialsId);
     LOGGER.info("CodeBuild tunnel: " + this.tunnel);
-    LOGGER.info("CodeBuild url: " + this.url);
+    LOGGER.info("CodeBuild jenkinsUrl: " + this.jenkinsUrl);
     LOGGER.info("CodeBuild webSocket: " + this.webSocket);
     LOGGER.info("CodeBuild controllerIdentity: " + this.controllerIdentity.getPlainText());
     LOGGER.info("CodeBuild environmentType: " + this.environmentType);
     LOGGER.info("CodeBuild buildSpec: " + this.buildSpec);
+    LOGGER.info("Codebuild Cloud relative URL: " + this.getUrl());
   }
 
   /**
@@ -414,13 +419,13 @@ public class CodeBuildCloud extends Cloud {
   }
 
   @NonNull
-  public String getUrl() {
-    return url;
+  public String getJenkinsUrl() {
+    return jenkinsUrl;
   }
 
   @DataBoundSetter
-  public void setUrl(String url) {
-    this.url = url;
+  public void setJenkinsUrl(String jenkinsUrl) {
+    this.jenkinsUrl = jenkinsUrl;
   }
 
   @NonNull
@@ -678,6 +683,8 @@ public class CodeBuildCloud extends Cloud {
   @Extension
   public static class DescriptorImpl extends Descriptor<Cloud> {
 
+    private static String CLOUD_NAME_PATTERN = "[a-z|A-Z|0-9|_|-]{1,100}";
+
     private FormValidation checkValue(String value, String error) {
       getJenkins().checkPermission(Jenkins.ADMINISTER);
       if (value.length() != 0) {
@@ -781,6 +788,19 @@ public class CodeBuildCloud extends Cloud {
     }
 
     @POST
+    public FormValidation doCheckName(@QueryParameter String value) throws IOException, ServletException {
+
+      if (value.length() > 0 &&
+          value.length() <= 100
+          && value.matches(CLOUD_NAME_PATTERN)
+          && value != null) {
+        return FormValidation.ok();
+      }
+      return FormValidation
+          .error("Should match the following REGEX: '" + CLOUD_NAME_PATTERN + "'");
+    }
+
+    @POST
     public FormValidation doCheckRegion(@QueryParameter String value) {
       return checkValue(value, "Must include a region");
     }
@@ -797,15 +817,15 @@ public class CodeBuildCloud extends Cloud {
       // List of projects from Codebuild
       final List<String> codebuildProjects = new ArrayList<String>();
 
-      CodeBuildClientWrapper client = CodeBuildClientWrapperFactory.buildClient(credentialId, region, getJenkins());
       try {
+        CodeBuildClientWrapper client = CodeBuildClientWrapperFactory.buildClient(credentialId, region, getJenkins());
         String nextToken = null;
         do {
           ListProjectsResult result = client.listProjects(new ListProjectsRequest().withNextToken(nextToken));
           codebuildProjects.addAll(result.getProjects());
           nextToken = result.getNextToken();
         } while (nextToken != null);
-      } catch (com.amazonaws.SdkClientException e) {
+      } catch (com.amazonaws.AmazonClientException e) {
         if (e.getMessage().contains("Unable to load AWS credentials")) {
           LOGGER.warning(
               " Exception listing codebuild project because of no valid AWS credentials. Exception: " + e.toString());
@@ -815,11 +835,11 @@ public class CodeBuildCloud extends Cloud {
               " Exception listing codebuild project because of INVALID AWS credentials Exception: " + e.toString());
           return options;
         } else {
-          LOGGER.log(Level.SEVERE, "Unhandled AWS Exception listing CodeBuild Projects: ", e);
+          LOGGER.log(Level.SEVERE, "Unhandled AWS Exception listing CodeBuild Projects: " + e.toString());
           return options;
         }
       } catch (Exception e) {
-        LOGGER.log(Level.SEVERE, "Unhandled General Exception listing CodeBuild Projects: ", e);
+        LOGGER.log(Level.SEVERE, "Unhandled General Exception listing CodeBuild Projects: " + e.toString());
         return options;
 
       }
@@ -927,13 +947,13 @@ public class CodeBuildCloud extends Cloud {
     }
 
     @POST
-    public String getDefaultUrl() {
+    public String getDefaultJenkinsUrl() {
       JenkinsLocationConfiguration config = JenkinsLocationConfiguration.get();
       return StringUtils.defaultIfBlank(config.getUrl(), "unknown");
     }
 
     @POST
-    public FormValidation doCheckUrl(@QueryParameter String value) {
+    public FormValidation doCheckJenkinsUrl(@QueryParameter String value) {
       if (value.length() > 0) {
         try {
           new URL(value);
@@ -958,8 +978,8 @@ public class CodeBuildCloud extends Cloud {
     public String getDefaultRegion() {
       try {
         return new DefaultAwsRegionProviderChain().getRegion();
-      } catch (SdkClientException exc) {
-        return null;
+      } catch (AmazonClientException exc) {
+        return "";
       }
     }
 
