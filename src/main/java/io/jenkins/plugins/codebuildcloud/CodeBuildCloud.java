@@ -790,10 +790,10 @@ public class CodeBuildCloud extends Cloud {
     @POST
     public FormValidation doCheckName(@QueryParameter String value) throws IOException, ServletException {
 
-      if (value.length() > 0 &&
+      if (value != null &&
+          value.length() > 0 &&
           value.length() <= 100
-          && value.matches(CLOUD_NAME_PATTERN)
-          && value != null) {
+          && value.matches(CLOUD_NAME_PATTERN)) {
         return FormValidation.ok();
       }
       return FormValidation
