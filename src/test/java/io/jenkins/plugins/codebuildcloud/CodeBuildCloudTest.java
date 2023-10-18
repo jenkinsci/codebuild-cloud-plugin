@@ -12,7 +12,8 @@ public class CodeBuildCloudTest {
 
   @Test
   public void testInitPlugin() throws Exception {
-    final CodeBuildCloud cloud = new CodeBuildCloud(null, "hello", null, null, null, null, null, null, null, null, null,
+    final CodeBuildCloud cloud = new CodeBuildCloud("Test1", "hello", null, null, null, null, null, null, null, null,
+        null,
         null,
         null,
         null, null, null, null, null, null, null, null, null);

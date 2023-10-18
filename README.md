@@ -112,14 +112,14 @@ Makes Codebuild buildjobs a Jenkins Agent.
     - Requires Java 17.  We use [Coretto](https://aws.amazon.com/corretto).
     - Export JAVA_HOME, IE:
       ```
-      export JAVA_HOME=/Library/Java/JavaVirtualMachines/amazon-corretto-17.jdk/Contents/Home
+      export JAVA_HOME=/Library/Java/JavaVirtualMachines/temurin-17.jdk/Contents/Home
       ```
     - Make sure you have a new version of maven:
     `brew install maven`
     - `mvn verify` or `mvn clean install` to build
-    - To run a local instance `mvn clean  hpi:run`
+    - To run a local instance `mvn clean  hpi:run` or `mvn clean compile hpi:run`
   - Useful Maven calls
-    - Use for debug logging - `mvn clean hpi:run -Djava.util.logging.config.file=resources/logging.properties`
+    - Use for debug logging - `mvn clean compile hpi:run -Djava.util.logging.config.file=resources/logging.properties`
 
 ### Tips
 - When updating the `pom.xml` specifically jenkins dependencies like modules and plugins, use https://repo.jenkins-ci.org/public/org to determine correct versions.  While there might be newer versions in maven central or other repositories, it will fail in Github Actions.
