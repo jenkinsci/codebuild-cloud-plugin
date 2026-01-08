@@ -24,6 +24,8 @@
   <properties>
     <revision>0.9</revision>
     <changelist>999999-SNAPSHOT</changelist>
+    <hpi.strictBundledArtifacts>true</hpi.strictBundledArtifacts>
+    <hpi.bundledArtifacts>caffeine,error_prone_annotations,ipaddress,jspecify</hpi.bundledArtifacts>
 
     <!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
     <jenkins.version>2.528.3</jenkins.version>
@@ -49,6 +51,13 @@
         <version>5506.va_222b_131ec34</version>
         <type>pom</type>
         <scope>import</scope>
+      </dependency>
+
+      <!-- Override for caffeine below -->
+      <dependency>
+        <groupId>com.google.errorprone</groupId>
+        <artifactId>error_prone_annotations</artifactId>
+        <version>2.43.0</version>
       </dependency>
 
     </dependencies>
@@ -104,20 +113,13 @@
       <groupId>com.github.ben-manes.caffeine</groupId>
       <artifactId>caffeine</artifactId>
       <version>3.2.3</version>
-    </dependency>
 
-    <!--  To make caffeine work-->
-    <dependency>
-      <groupId>com.google.errorprone</groupId>
-      <artifactId>error_prone_annotations</artifactId>
-      <version>2.43.0</version>
     </dependency>
 
     <!--  StringUtils -->
     <dependency>
-      <groupId>org.apache.commons</groupId>
-      <artifactId>commons-lang3</artifactId>
-      <version>3.19.0</version>
+      <groupId>io.jenkins.plugins</groupId>
+      <artifactId>commons-lang3-api</artifactId>
     </dependency>
 
     <!-- Tests-->
