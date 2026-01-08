@@ -109,10 +109,10 @@ Makes Codebuild buildjobs a Jenkins Agent.
 ### Quick Start
   - Fork into your own namespace
   - Environment setup
-    - Requires Java 17.  We use [Coretto](https://aws.amazon.com/corretto).
+    - Requires Java 21.  We use [Coretto](https://aws.amazon.com/corretto).
     - Export JAVA_HOME, IE:
       ```
-      export JAVA_HOME=/Library/Java/JavaVirtualMachines/temurin-17.jdk/Contents/Home
+      export JAVA_HOME=/Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home
       ```
     - Make sure you have a new version of maven:
     `brew install maven`

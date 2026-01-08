@@ -14,6 +14,7 @@ import java.util.logging.Logger;
 
 import javax.servlet.ServletException;
 
+import org.apache.commons.lang.NullArgumentException;
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.main.modules.instance_identity.InstanceIdentity;
@@ -55,8 +56,8 @@ import hudson.slaves.NodeProvisioner.PlannedNode;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import hudson.util.Secret;
-import io.jenkins.cli.shaded.org.apache.commons.lang.NotImplementedException;
-import io.jenkins.cli.shaded.org.apache.commons.lang.NullArgumentException;
+import org.apache.commons.lang3.NotImplementedException;
+import java.util.Objects;
 import jakarta.annotation.Nonnull;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
@@ -266,9 +267,7 @@ public class CodeBuildCloud extends Cloud {
   @NonNull
   protected static Jenkins getJenkins() {
     Jenkins instance = Jenkins.get();
-    if (instance == null) {
-      throw new NullArgumentException("Jenkins is null");
-    }
+    Objects.requireNonNull(instance, "Jenkins must not be null");
     return instance;
   }
 

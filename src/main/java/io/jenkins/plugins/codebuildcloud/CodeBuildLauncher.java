@@ -26,7 +26,7 @@ import hudson.security.ACL;
 import hudson.slaves.JNLPLauncher;
 import hudson.slaves.SlaveComputer;
 import hudson.util.StreamTaskListener;
-import io.jenkins.cli.shaded.org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import io.jenkins.plugins.codebuildcloud.CodeBuildClientWrapper.CodeBuildStatus;
 
 public class CodeBuildLauncher extends JNLPLauncher {
