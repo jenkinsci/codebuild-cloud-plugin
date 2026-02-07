@@ -6,7 +6,7 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>4.49</version>
+    <version>5.31</version>
     <relativePath />
   </parent>
   <groupId>io.jenkins.plugins</groupId>
@@ -24,9 +24,11 @@
   <properties>
     <revision>0.9</revision>
     <changelist>999999-SNAPSHOT</changelist>
+    <hpi.strictBundledArtifacts>true</hpi.strictBundledArtifacts>
+    <hpi.bundledArtifacts>caffeine,error_prone_annotations,ipaddress,jspecify</hpi.bundledArtifacts>
 
     <!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
-    <jenkins.version>2.361.4</jenkins.version>
+    <jenkins.version>2.528.3</jenkins.version>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
   </properties>
 
@@ -45,10 +47,17 @@
         <!-- Pick up common dependencies for the selected LTS line:
         https://github.com/jenkinsci/bom#usage -->
         <groupId>io.jenkins.tools.bom</groupId>
-        <artifactId>bom-2.361.x</artifactId>
-        <version>2102.v854b_fec19c92</version>
+        <artifactId>bom-2.528.x</artifactId>
+        <version>5506.va_222b_131ec34</version>
         <type>pom</type>
         <scope>import</scope>
+      </dependency>
+
+      <!-- Override for caffeine below -->
+      <dependency>
+        <groupId>com.google.errorprone</groupId>
+        <artifactId>error_prone_annotations</artifactId>
+        <version>2.43.0</version>
       </dependency>
 
     </dependencies>
@@ -68,14 +77,15 @@
     <dependency>
       <groupId>org.jenkins-ci.modules</groupId>
       <artifactId>instance-identity</artifactId>
-      <version>142.v04572ca_5b_265</version>
+      <version>203.v15e81a_1b_7a_38</version>
       <scope>compile</scope>
     </dependency>
+
 
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>aws-credentials</artifactId>
-      <version>191.vcb_f183ce58b_9</version>
+      <version>254.v978a_5e206a_d7</version>
     </dependency>
 
     <!-- Validation of CodeBuild IPs -->
@@ -95,14 +105,21 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>durable-task</artifactId>
-      <version>507.v050055d0cb_dd</version>
+      <version>581.v299a_5609d767</version>
     </dependency>
 
     <!-- Caching https://github.com/ben-manes/caffeine -->
     <dependency>
       <groupId>com.github.ben-manes.caffeine</groupId>
       <artifactId>caffeine</artifactId>
-      <version>3.1.6</version>
+      <version>3.2.3</version>
+
+    </dependency>
+
+    <!--  StringUtils -->
+    <dependency>
+      <groupId>io.jenkins.plugins</groupId>
+      <artifactId>commons-lang3-api</artifactId>
     </dependency>
 
     <!-- Tests-->
