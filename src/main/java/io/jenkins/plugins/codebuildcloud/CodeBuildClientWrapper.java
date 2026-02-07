@@ -1,37 +1,32 @@
 package io.jenkins.plugins.codebuildcloud;
 
 import java.io.InvalidObjectException;
+import java.net.URI;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.services.codebuild.AWSCodeBuild;
-import com.amazonaws.services.codebuild.AWSCodeBuildClientBuilder;
-import com.amazonaws.services.codebuild.model.BatchGetBuildsRequest;
-import com.amazonaws.services.codebuild.model.BatchGetBuildsResult;
-import com.amazonaws.services.codebuild.model.BatchGetProjectsRequest;
-import com.amazonaws.services.codebuild.model.BatchGetProjectsResult;
-import com.amazonaws.services.codebuild.model.Build;
-import com.amazonaws.services.codebuild.model.ListProjectsRequest;
-import com.amazonaws.services.codebuild.model.ListProjectsResult;
-import com.amazonaws.services.codebuild.model.Project;
-import com.amazonaws.services.codebuild.model.StartBuildRequest;
-import com.amazonaws.services.codebuild.model.StartBuildResult;
-import com.amazonaws.services.codebuild.model.StopBuildRequest;
+import java.util.stream.Collectors;
+import software.amazon.awssdk.http.apache.ProxyConfiguration;
+import software.amazon.awssdk.http.apache.ApacheHttpClient;
+import software.amazon.awssdk.http.SdkHttpClient;
+import software.amazon.awssdk.services.codebuild.CodeBuildClient;
+import software.amazon.awssdk.services.codebuild.CodeBuildClientBuilder;
+import software.amazon.awssdk.services.codebuild.model.*;
+import software.amazon.awssdk.regions.Region;
 import com.cloudbees.jenkins.plugins.awscredentials.AWSCredentialsHelper;
 import com.cloudbees.jenkins.plugins.awscredentials.AmazonWebServicesCredentials;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-import hudson.ProxyConfiguration;
+
 import jenkins.model.Jenkins;
 
 public class CodeBuildClientWrapper {
-  private AWSCodeBuild _client;
+  private CodeBuildClient _client;
 
   public CodeBuildClientWrapper(String credentialsId, String region, Jenkins instance) {
     this._client = buildClient(credentialsId, region, instance);
@@ -42,27 +37,51 @@ public class CodeBuildClientWrapper {
   private static transient Cache<String, Integer> myCache = Caffeine.newBuilder()
       .expireAfterWrite(1, TimeUnit.HOURS).build();
 
-  private static AWSCodeBuild buildClient(String credentialsId, String region, Jenkins instance) {
+  public static SdkHttpClient buildApacheClientWithJenkinsProxy() {
+    hudson.ProxyConfiguration jenkinsProxy = Jenkins.get().proxy;
 
-    ProxyConfiguration proxy = instance.proxy;
-    ClientConfiguration clientConfiguration = new ClientConfiguration();
-
-    if (proxy != null) {
-      clientConfiguration.setProxyHost(proxy.name);
-      clientConfiguration.setProxyPort(proxy.port);
-      clientConfiguration.setProxyUsername(proxy.getUserName());
-      clientConfiguration.setProxyPassword(proxy.getPassword());
+    if (jenkinsProxy == null) {
+      return ApacheHttpClient.builder().build();
     }
 
-    AWSCodeBuildClientBuilder builder = AWSCodeBuildClientBuilder.standard()
-        .withClientConfiguration(clientConfiguration).withRegion(region);
+    ProxyConfiguration.Builder awsProxyBuilder = ProxyConfiguration.builder()
+        .endpoint(
+            URI.create("http://" + jenkinsProxy.name + ":" + jenkinsProxy.port));
 
+    // Optional auth
+    if (jenkinsProxy.name != null && !jenkinsProxy.name.isEmpty()) {
+      awsProxyBuilder.username(jenkinsProxy.name);
+
+      if (jenkinsProxy.getSecretPassword().getPlainText() != null) {
+        awsProxyBuilder.password(jenkinsProxy.getSecretPassword().getPlainText());
+      }
+    }
+
+    // noProxyHost: "localhost|*.example.com"
+    if (jenkinsProxy.getNoProxyHost() != null && !jenkinsProxy.getNoProxyHost().isEmpty()) {
+      List<String> nonProxyHosts = Arrays.stream(jenkinsProxy.getNoProxyHost().split("\\|"))
+          .map(String::trim)
+          .collect(Collectors.toList());
+
+      awsProxyBuilder.nonProxyHosts(new HashSet<>(nonProxyHosts));
+    }
+
+    return ApacheHttpClient.builder()
+        .proxyConfiguration(awsProxyBuilder.build())
+        .build();
+  }
+
+  private static CodeBuildClient buildClient(String credentialsId, String region, Jenkins instance) {
+
+    SdkHttpClient cli = buildApacheClientWithJenkinsProxy();
+    CodeBuildClientBuilder builder = CodeBuildClient.builder().region(Region.of(region)).httpClient(cli);
     AmazonWebServicesCredentials credentials = AWSCredentialsHelper.getCredentials(credentialsId, instance);
 
     if (credentials != null) {
       String awsAccessKeyId = credentials.getCredentials().getAWSAccessKeyId();
       LOGGER.finest("Using credentials:" + awsAccessKeyId);
-      builder.withCredentials(credentials);
+      builder.credentialsProvider(credentials);
+      // builder.withCredentials(credentials);
     }
 
     LOGGER.log(Level.FINEST, "Selected Region: " + region);
@@ -70,7 +89,7 @@ public class CodeBuildClientWrapper {
     return builder.build();
   }
 
-  public ListProjectsResult listProjects(ListProjectsRequest request) {
+  public ListProjectsResponse listProjects(ListProjectsRequest request) {
     return _client.listProjects(request);
   }
 
@@ -85,14 +104,14 @@ public class CodeBuildClientWrapper {
 
   public CodeBuildStatus getBuildStatus(@NonNull String buildId) {
 
-    BatchGetBuildsRequest req = new BatchGetBuildsRequest();
-    req.setIds(Arrays.asList(buildId));
+    BatchGetBuildsRequest req = BatchGetBuildsRequest.builder().ids(Arrays.asList(buildId)).build();
+    // req.setIds(Arrays.asList(buildId));
 
-    BatchGetBuildsResult res = _client.batchGetBuilds(req);
-    assert res.getBuilds().size() == 1;
+    BatchGetBuildsResponse res = _client.batchGetBuilds(req);
+    assert res.builds().size() == 1;
 
-    Build b = res.getBuilds().get(0);
-    String bstatus = b.getBuildStatus();
+    Build b = res.builds().get(0);
+    String bstatus = b.buildStatus().toString();
 
     return CodeBuildStatus.valueOf(bstatus);
   }
@@ -110,7 +129,7 @@ public class CodeBuildClientWrapper {
     }
   }
 
-  public StartBuildResult startBuild(StartBuildRequest req) {
+  public StartBuildResponse startBuild(StartBuildRequest req) {
     return _client.startBuild(req);
   }
 
@@ -124,7 +143,8 @@ public class CodeBuildClientWrapper {
     if (status == CodeBuildStatus.IN_PROGRESS) {
       try {
         LOGGER.finest(String.format("Stopping build ID: %s", buildId));
-        _client.stopBuild(new StopBuildRequest().withId(buildId));
+        _client.stopBuild(StopBuildRequest.builder().id(buildId).build());
+        // _client.stopBuild(new StopBuildRequest().withId(buildId));
       } catch (Exception e) {
         LOGGER.severe(String.format("Exception while attempting to stop build: %s.  Exception %s", e.getMessage(), e));
       }
@@ -139,12 +159,13 @@ public class CodeBuildClientWrapper {
     Integer result = Integer.MAX_VALUE;
 
     try {
-      BatchGetProjectsResult res = this._client.batchGetProjects(new BatchGetProjectsRequest().withNames(jobName));
-      assert res.getProjects().size() == 1;
-      Project myproj = res.getProjects().get(0);
+      BatchGetProjectsResponse res = this._client
+          .batchGetProjects(BatchGetProjectsRequest.builder().names(jobName).build());
+      assert res.projects().size() == 1;
+      Project myproj = res.projects().get(0);
 
-      if (myproj.getConcurrentBuildLimit() != null) {
-        result = myproj.getConcurrentBuildLimit();
+      if (myproj.concurrentBuildLimit() != null) {
+        result = myproj.concurrentBuildLimit();
       }
     } catch (Exception e) {
       LOGGER.log(Level.SEVERE, "Unable to determine codebuild project size", e);

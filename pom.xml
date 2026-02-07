@@ -69,9 +69,9 @@
       <artifactId>structs</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.jenkins-ci.plugins.aws-java-sdk</groupId>
-      <artifactId>aws-java-sdk-codebuild</artifactId>
-      <version>1.12.447-382.vda_68e2007233</version>
+      <groupId>io.jenkins.plugins.aws-java-sdk2</groupId>
+      <artifactId>aws-java-sdk2-codebuild</artifactId>
+      <version>2.33.4-62.vc1a_8df64b_4c9</version>
     </dependency>
 
     <dependency>

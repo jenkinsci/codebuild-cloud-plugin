@@ -10,10 +10,14 @@ import java.util.List;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Logger;
 
-import com.amazonaws.services.codebuild.model.EnvironmentVariable;
-import com.amazonaws.services.codebuild.model.SourceType;
-import com.amazonaws.services.codebuild.model.StartBuildRequest;
-import com.amazonaws.services.codebuild.model.StartBuildResult;
+// import com.amazonaws.services.codebuild.model.EnvironmentVariable;
+// import com.amazonaws.services.codebuild.model.SourceType;
+// import com.amazonaws.services.codebuild.model.StartBuildRequest;
+// import com.amazonaws.services.codebuild.model.StartBuildResult;
+import software.amazon.awssdk.services.codebuild.model.*;
+
+
+
 import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
@@ -71,22 +75,35 @@ public class CodeBuildLauncher extends JNLPLauncher {
     // Extra ENV Variables to add to the
     List<EnvironmentVariable> myenvcollection = buildEnvVariableCollection(computer, node);
 
-    StartBuildRequest req = new StartBuildRequest()
-        .withProjectName(cloud.getCodeBuildProjectName())
-        .withSourceTypeOverride(SourceType.NO_SOURCE)
-        .withImageOverride(cloud.getDockerImage())
-        .withEnvironmentTypeOverride(cloud.getEnvironmentType())
-        .withPrivilegedModeOverride(true)
-        .withEnvironmentVariablesOverride(myenvcollection)
-        .withComputeTypeOverride(cloud.getComputeType())
-        .withImagePullCredentialsTypeOverride(cloud.getDockerImagePullCredentials())
-        .withBuildspecOverride(cloud.getBuildSpec());
+    // StartBuildRequest req = new StartBuildRequest()
+    //     .withProjectName(cloud.getCodeBuildProjectName())
+    //     .withSourceTypeOverride(SourceType.NO_SOURCE)
+    //     .withImageOverride(cloud.getDockerImage())
+    //     .withEnvironmentTypeOverride(cloud.getEnvironmentType())
+    //     .withPrivilegedModeOverride(true)
+    //     .withEnvironmentVariablesOverride(myenvcollection)
+    //     .withComputeTypeOverride(cloud.getComputeType())
+    //     .withImagePullCredentialsTypeOverride(cloud.getDockerImagePullCredentials())
+    //     .withBuildspecOverride(cloud.getBuildSpec());
+
+        StartBuildRequest req = StartBuildRequest.builder()
+        .projectName(cloud.getCodeBuildProjectName())
+        .sourceTypeOverride(SourceType.NO_SOURCE)
+        .imageOverride(cloud.getDockerImage())
+        .environmentTypeOverride(cloud.getEnvironmentType())
+        .privilegedModeOverride(true)
+        .environmentVariablesOverride(myenvcollection)
+        .computeTypeOverride(cloud.getComputeType())
+        .imagePullCredentialsTypeOverride(cloud.getDockerImagePullCredentials())
+        .buildspecOverride(cloud.getBuildSpec())
+        .build();
+
 
     String buildId = null;
 
     try {
-      StartBuildResult res = cloud.getClient().startBuild(req);
-      buildId = res.getBuild().getId();
+      StartBuildResponse res = cloud.getClient().startBuild(req);
+      buildId = res.build().id();
       codebuildComputer.setBuildId(buildId);
 
       waitForAgentConnection(computer, buildId, node);
@@ -242,11 +259,11 @@ public class CodeBuildLauncher extends JNLPLauncher {
   }
 
   private EnvironmentVariable createEnvVariable(String key, String value) {
-    EnvironmentVariable var1 = new EnvironmentVariable();
-    var1.setName(key);
-    var1.setType("PLAINTEXT");
-    var1.setValue(value);
-
+    EnvironmentVariable var1 = EnvironmentVariable.builder()
+        .name(key)
+        .value(value)
+        .type(EnvironmentVariableType.PLAINTEXT)
+        .build();
     return var1;
 
   }

@@ -31,11 +31,14 @@ import com.amazonaws.AmazonClientException;
 import com.amazonaws.regions.DefaultAwsRegionProviderChain;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.RegionUtils;
-import com.amazonaws.services.codebuild.AWSCodeBuild;
-import com.amazonaws.services.codebuild.model.EnvironmentType;
-import com.amazonaws.services.codebuild.model.ImagePullCredentialsType;
-import com.amazonaws.services.codebuild.model.ListProjectsRequest;
-import com.amazonaws.services.codebuild.model.ListProjectsResult;
+// import com.amazonaws.services.codebuild.AWSCodeBuild;
+// import com.amazonaws.services.codebuild.model.EnvironmentType;
+// import com.amazonaws.services.codebuild.model.ImagePullCredentialsType;
+// import com.amazonaws.services.codebuild.model.ListProjectsRequest;
+// import com.amazonaws.services.codebuild.model.ListProjectsResult;
+import software.amazon.awssdk.services.codebuild.model.*;
+import software.amazon.awssdk.services.codebuild.CodeBuildClient;
+
 import com.cloudbees.jenkins.plugins.awscredentials.AWSCredentialsHelper;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernameListBoxModel;
@@ -780,7 +783,7 @@ public class CodeBuildCloud extends Cloud {
       options.includeEmptyValue();
 
       // NO AWS API Calls here
-      for (Region r : RegionUtils.getRegionsForService(AWSCodeBuild.ENDPOINT_PREFIX)) {
+      for (Region r : RegionUtils.getRegionsForService(CodeBuildClient.SERVICE_NAME)) {
         options.add(r.getName());
       }
       return options;
@@ -820,9 +823,9 @@ public class CodeBuildCloud extends Cloud {
         CodeBuildClientWrapper client = CodeBuildClientWrapperFactory.buildClient(credentialId, region, getJenkins());
         String nextToken = null;
         do {
-          ListProjectsResult result = client.listProjects(new ListProjectsRequest().withNextToken(nextToken));
-          codebuildProjects.addAll(result.getProjects());
-          nextToken = result.getNextToken();
+          ListProjectsResponse result = client.listProjects( ListProjectsRequest.builder().nextToken(nextToken).build());
+          codebuildProjects.addAll(result.projects());
+          nextToken = result.nextToken();
         } while (nextToken != null);
       } catch (com.amazonaws.AmazonClientException e) {
         if (e.getMessage().contains("Unable to load AWS credentials")) {
@@ -882,7 +885,7 @@ public class CodeBuildCloud extends Cloud {
       // NO AWS API Calls here
 
       List<String> envTypes = new ArrayList<String>();
-      for (EnvironmentType theValue : com.amazonaws.services.codebuild.model.EnvironmentType.values()) {
+      for (EnvironmentType theValue : EnvironmentType.values()) {
         envTypes.add(theValue.name());
       }
 

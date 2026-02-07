@@ -5,7 +5,7 @@ import java.util.Collections;
 import java.util.logging.Logger;
 import org.apache.commons.lang.StringUtils;
 
-import com.amazonaws.services.codebuild.model.ResourceNotFoundException;
+import software.amazon.awssdk.services.codebuild.model.ResourceNotFoundException;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.Descriptor;
