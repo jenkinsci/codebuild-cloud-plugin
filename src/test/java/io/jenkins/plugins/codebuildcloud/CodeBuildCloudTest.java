@@ -1,23 +1,30 @@
 package io.jenkins.plugins.codebuildcloud;
 
-import org.junit.Assert;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
-public class CodeBuildCloudTest {
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-  @Rule
-  public JenkinsRule j = new JenkinsRule();
+@WithJenkins
+class CodeBuildCloudTest {
+
+  private JenkinsRule j;
+
+  @BeforeEach
+  void beforeEach(JenkinsRule rule) {
+    j = rule;
+  }
 
   @Test
-  public void testInitPlugin() throws Exception {
+  void testInitPlugin() {
     final CodeBuildCloud cloud = new CodeBuildCloud("Test1", "hello", null, null, null, null, null, null, null, null,
         null,
         null,
         null,
         null, null, null, null, null, null, null, null, null);
-    Assert.assertEquals("hello", cloud.getCodeBuildProjectName());
+    assertEquals("hello", cloud.getCodeBuildProjectName());
   }
 
 }
