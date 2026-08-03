@@ -3,7 +3,7 @@ package io.jenkins.plugins.codebuildcloud;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.logging.Logger;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import com.amazonaws.services.codebuild.model.ResourceNotFoundException;
 
